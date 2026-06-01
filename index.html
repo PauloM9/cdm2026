@@ -154,6 +154,10 @@ main{max-width:1400px;margin:0 auto;padding:1.2rem 1rem;position:relative;z-inde
 .absc::placeholder{color:var(--muted)}
 .adm-final{background:var(--card);border:1px solid var(--gold);border-radius:12px;padding:1rem;margin-bottom:1.2rem;display:flex;flex-wrap:wrap;gap:.8rem;align-items:flex-end}
 .adm-final h3{width:100%;font-family:'Bebas Neue';font-size:1.1rem;color:var(--gold)}
+.player-row{display:flex;align-items:center;gap:.5rem;background:var(--dark2);border:1px solid var(--card2);border-radius:8px;padding:.45rem .65rem}
+.player-row input{background:var(--card);border:1px solid var(--card2);color:var(--text);padding:.3rem .5rem;border-radius:6px;font-family:'Nunito';font-size:.82rem;flex:1;min-width:80px}
+.player-row input:focus{border-color:var(--gold);outline:none}
+.btn.danger{background:linear-gradient(135deg,#c0392b,#8b0000);color:#fff}
 .loading-full{position:fixed;top:0;left:0;width:100%;height:100%;background:var(--dark);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:1rem}
 .spinner{width:45px;height:45px;border:3px solid var(--card2);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -263,6 +267,13 @@ main{max-width:1400px;margin:0 auto;padding:1.2rem 1rem;position:relative;z-inde
     </div>
     <div id="apnl" style="display:none">
       <p style="color:var(--green);margin-bottom:.8rem;font-size:.88rem">✅ Mode admin — toutes les saisies sont synchronisées en temps réel pour tous les participants.</p>
+
+      <!-- GESTION JOUEURS -->
+      <div class="adm-final" style="margin-bottom:1rem">
+        <h3>👥 Gestion des Participants</h3>
+        <div id="adm-players-list" style="width:100%;display:flex;flex-direction:column;gap:.5rem"></div>
+      </div>
+
       <div class="adm-final">
         <h3>🏆 Valider les paris spéciaux (fin de tournoi)</h3>
         <div class="bfield"><label>Vainqueur réel du tournoi</label><input type="text" id="adm-winner" placeholder="Ex: France"></div>
@@ -342,7 +353,7 @@ function getComment(pname,pos){
 
 // ===== FIREBASE LISTENERS =====
 function startListeners(){
-  onValue(ref(db,'players'),snap=>{S.players=snap.val()||[];renderLoginExisting();renderAll();});
+  onValue(ref(db,'players'),snap=>{S.players=snap.val()||[];renderLoginExisting();renderAll();renderAdmPlayers();});
   onValue(ref(db,'bets'),snap=>{S.bets=snap.val()||{};renderAll();});
   onValue(ref(db,'results'),snap=>{S.results=snap.val()||{};renderAll();renderAdm();});
   onValue(ref(db,'finalResults'),snap=>{S.finalResults=snap.val()||{winner:'',scorer:''};renderAll();});
@@ -659,8 +670,64 @@ window.admSave=async function(mid){
   const sr=document.getElementById(`as-${mid}`).value.trim();const sc=sr?sr.split(',').map(s=>s.trim()).filter(Boolean):[];
   await fbSet('results/'+mid,{h,a,sc,sr});
 };
+
+// ===== GESTION JOUEURS ADMIN =====
+window.admRenamePlayer=async function(oldName){
+  const inp=document.getElementById('rename-'+oldName);
+  const newName=inp.value.trim();
+  if(!newName||newName===oldName)return;
+  if(S.players.includes(newName)){alert('Ce nom existe déjà !');return;}
+  // Mise à jour liste joueurs
+  const newList=S.players.map(p=>p===oldName?newName:p);
+  await fbSet('players',newList);
+  // Migrer les paris
+  if(S.bets[oldName]){
+    await fbSet('bets/'+newName,S.bets[oldName]);
+    await fbSet('bets/'+oldName,null);
+  }
+  // Migrer le chat
+  const newChat=S.chat.map(m=>m.au===oldName?{...m,au:newName}:m);
+  // Reconstruire chat dans Firebase
+  const {get:fbGet}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js");
+  const chatSnap=await fbGet(ref(db,'chat'));
+  if(chatSnap.exists()){
+    const raw=chatSnap.val();
+    const updates={};
+    Object.entries(raw).forEach(([k,v])=>{if(v.au===oldName)updates['chat/'+k]={...v,au:newName};});
+    for(const[path,val]of Object.entries(updates))await fbSet(path,val);
+  }
+  // Si c'est le joueur connecté, mettre à jour
+  if(curPlayer===oldName){curPlayer=newName;try{localStorage.setItem('cdm2026_player',newName);}catch(e){}document.getElementById('cur-lbl').textContent=newName;}
+  inp.value='';
+  const btn=inp.nextElementSibling;if(btn){btn.textContent='✅ Renommé !';setTimeout(()=>btn.textContent='✏️ Renommer',1500);}
+};
+
+window.admDeletePlayer=async function(name){
+  if(!confirm(`Supprimer "${name}" et tous ses paris ? Cette action est irréversible.`))return;
+  const newList=S.players.filter(p=>p!==name);
+  await fbSet('players',newList);
+  await fbSet('bets/'+name,null);
+  if(curPlayer===name){curPlayer=null;try{localStorage.removeItem('cdm2026_player');}catch(e){}showLogin();}
+};
+
+function renderAdmPlayers(){
+  if(!adminOn)return;
+  const cont=document.getElementById('adm-players-list');if(!cont)return;
+  if(!S.players.length){cont.innerHTML='<p style="color:var(--muted);font-size:.82rem">Aucun participant inscrit.</p>';return;}
+  cont.innerHTML=S.players.map(p=>`
+    <div class="player-row">
+      <span style="font-weight:700;font-size:.85rem;min-width:80px;color:${p===curPlayer?'var(--gold)':'var(--text)'}">${p}${p===curPlayer?' 👤':''}</span>
+      <input type="text" id="rename-${p}" placeholder="Nouveau prénom..." maxlength="20">
+      <button class="btn sm" onclick="admRenamePlayer('${p}')">✏️ Renommer</button>
+      <button class="btn sm danger" onclick="admDeletePlayer('${p}')">🗑️ Supprimer</button>
+    </div>
+  `).join('');
+}
+
 function renderAdm(){
-  if(!adminOn)return;const cont=document.getElementById('admlst');cont.innerHTML='';
+  if(!adminOn)return;
+  renderAdmPlayers();
+  const cont=document.getElementById('admlst');cont.innerHTML='';
   [...GM,...KMT].forEach(m=>{
     const r=S.results[m.id]||{};const div=document.createElement('div');div.className='ami';
     let lb=m.g?`[${m.g}] ${m.d} ${m.t} — ${tname(m.h)} vs ${tname(m.a)}`:`${m.lb} (${m.d} ${m.t})`;
