@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CDM 2026 — Pronostics</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--gold:#FFD700;--gold2:#FFA500;--red:#C8102E;--blue:#003399;--dark:#0a0a1a;--dark2:#12122a;--card:#1a1a35;--card2:#22224a;--text:#f0f0ff;--muted:#9999bb;--green:#22c55e;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--dark);color:var(--text);font-family:'Nunito',sans-serif;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;top:0;left:0;width:100%;height:100%;background:radial-gradient(ellipse at 20% 20%,rgba(0,51,153,.3) 0,transparent 50%),radial-gradient(ellipse at 80% 80%,rgba(200,16,46,.2) 0,transparent 50%);pointer-events:none;z-index:0}
+header{position:sticky;top:0;z-index:100;background:linear-gradient(135deg,#0a0a1a 0,#1a0a2e 50%,#0a1a0a 100%);border-bottom:2px solid var(--gold);padding:0 1rem}
+.hi{max-width:1400px;margin:0 auto;display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;padding:.3rem 0}
+.logo{font-family:'Bebas Neue',cursive;font-size:1.8rem;color:var(--gold);letter-spacing:2px;flex-shrink:0;text-shadow:0 0 18px rgba(255,215,0,.4)}
+.logo span{color:var(--red)}
+nav{display:flex;flex-wrap:wrap;flex:1}
+.tb{background:none;border:none;color:var(--muted);font-family:'Nunito';font-weight:700;font-size:.78rem;padding:.65rem .75rem;cursor:pointer;position:relative;transition:color .2s;text-transform:uppercase;letter-spacing:.8px;white-space:nowrap}
+.tb:hover,.tb.act{color:var(--gold)}
+.tb.act::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--gold)}
+.notif{background:var(--red);color:#fff;font-size:.6rem;border-radius:50%;width:15px;height:15px;display:inline-flex;align-items:center;justify-content:center;margin-left:3px;vertical-align:middle;animation:pulse 1.5s infinite}
+.notif.hid{display:none}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+.uplnl{display:flex;align-items:center;gap:.5rem;margin-left:auto;flex-wrap:wrap}
+.btn{background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--dark);border:none;padding:.32rem .85rem;border-radius:6px;font-weight:900;cursor:pointer;font-family:'Nunito';font-size:.78rem;transition:opacity .2s}
+.btn:hover{opacity:.85}
+.btn.out{background:linear-gradient(135deg,#444,#222);color:var(--muted)}
+.btn.sm{padding:.2rem .5rem;font-size:.72rem}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.cur-player{font-size:.8rem;color:var(--gold);font-weight:700;padding:.3rem .7rem;background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.25);border-radius:6px}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;margin-right:4px;animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+main{max-width:1400px;margin:0 auto;padding:1.2rem 1rem;position:relative;z-index:1}
+.tc{display:none}.tc.act{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.sbar{display:flex;flex-wrap:wrap;gap:.7rem;margin-bottom:1.1rem}
+.scard{background:var(--card);border:1px solid var(--card2);border-radius:10px;padding:.55rem .9rem;flex:1;min-width:90px;text-align:center}
+.sv{font-family:'Bebas Neue';font-size:1.7rem;color:var(--gold);display:block}
+.sl{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.gbets{background:var(--card);border:1px solid var(--gold);border-radius:12px;padding:1rem;margin-bottom:1.1rem;display:flex;flex-wrap:wrap;gap:.7rem;align-items:flex-end}
+.gbets h3{width:100%;font-family:'Bebas Neue';font-size:1.15rem;color:var(--gold);letter-spacing:1px}
+.bfield{display:flex;flex-direction:column;gap:.22rem;flex:1;min-width:155px}
+.bfield label{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.bfield input{background:var(--dark2);border:1px solid var(--card2);color:var(--text);padding:.42rem;border-radius:6px;font-family:'Nunito';font-size:.85rem}
+.bfield input:focus{border-color:var(--gold);outline:none}
+.bfield input:disabled{opacity:.5;cursor:not-allowed}
+.bonus-badge{background:rgba(255,215,0,.15);border:1px solid rgba(255,215,0,.4);border-radius:6px;padding:.2rem .5rem;font-size:.7rem;color:var(--gold);font-weight:700}
+.saved-ok{background:rgba(34,197,94,.1);border:1px solid var(--green);border-radius:6px;padding:.35rem .75rem;font-size:.78rem;color:var(--green);display:none}
+.legend{display:flex;gap:.7rem;flex-wrap:wrap;font-size:.7rem;margin-bottom:.9rem}
+.ldot{display:flex;align-items:center;gap:.3rem}
+.lc{width:10px;height:10px;border-radius:2px}
+.gsec{margin-bottom:1.6rem}
+.ghdr{background:linear-gradient(135deg,var(--card2),var(--card));border-left:4px solid var(--gold);padding:.55rem .9rem;margin-bottom:.55rem;border-radius:0 8px 8px 0;font-family:'Bebas Neue';font-size:1.15rem;letter-spacing:2px;color:var(--gold);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.3rem}
+.gteams{font-size:.75rem;color:var(--muted);font-family:'Nunito';font-weight:600}
+.stbl{width:100%;border-collapse:collapse;margin-bottom:.7rem;font-size:.76rem}
+.stbl th{background:var(--dark2);color:var(--muted);text-align:center;padding:.32rem .22rem;font-size:.66rem;text-transform:uppercase}
+.stbl th:first-child{text-align:left;padding-left:.45rem}
+.stbl td{padding:.28rem .22rem;text-align:center;border-bottom:1px solid rgba(255,255,255,.04)}
+.stbl td:first-child{text-align:left;padding-left:.45rem}
+.stbl tr.q1{background:rgba(34,197,94,.14)}
+.stbl tr.q2{background:rgba(59,130,246,.14)}
+.stbl tr.q3{background:rgba(251,191,36,.1)}
+.stbl tr.el{background:rgba(239,68,68,.08)}
+.tnm{font-weight:700;display:flex;align-items:center;gap:.3rem;font-size:.76rem}
+.pts{font-weight:900;color:var(--gold)}
+.mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(285px,1fr));gap:.65rem}
+.mc{background:var(--card);border:1px solid var(--card2);border-radius:10px;padding:.75rem;transition:border-color .2s}
+.mc:hover{border-color:rgba(255,215,0,.22)}
+.mmeta{display:flex;justify-content:space-between;align-items:center;margin-bottom:.45rem;font-size:.66rem;color:var(--muted)}
+.mst{padding:.1rem .4rem;border-radius:10px;font-size:.63rem;font-weight:700}
+.mst.up{background:rgba(59,130,246,.2);color:#60a5fa}
+.mst.lk{background:rgba(239,68,68,.2);color:#f87171}
+.mst.pl{background:rgba(34,197,94,.2);color:var(--green)}
+.mteams{display:flex;align-items:center;justify-content:space-between;gap:.35rem;margin-bottom:.45rem}
+.tside{display:flex;flex-direction:column;align-items:center;gap:.12rem;flex:1}
+.tflag{font-size:1.35rem;line-height:1}
+.tlbl{font-size:.7rem;font-weight:700;text-align:center;line-height:1.2}
+.vsb{display:flex;flex-direction:column;align-items:center;gap:.12rem;flex-shrink:0}
+.vstxt{font-family:'Bebas Neue';font-size:.95rem;color:var(--muted)}
+.rscore{font-family:'Bebas Neue';font-size:1.35rem;color:var(--gold);letter-spacing:2px}
+.sinps{display:flex;align-items:center;gap:.22rem}
+.sinp{width:32px;height:32px;text-align:center;background:var(--dark2);border:2px solid var(--card2);color:var(--text);font-size:.95rem;font-weight:900;border-radius:6px;font-family:'Bebas Neue'}
+.sinp:focus{border-color:var(--gold);outline:none}
+.sinp:disabled{opacity:.4;cursor:not-allowed}
+.ssep{font-family:'Bebas Neue';font-size:1.1rem;color:var(--muted)}
+.rbadge{padding:.12rem .45rem;border-radius:10px;font-size:.66rem;font-weight:700}
+.rbadge.pf{background:rgba(255,215,0,.2);color:var(--gold);border:1px solid var(--gold)}
+.rbadge.gd{background:rgba(34,197,94,.2);color:var(--green)}
+.rbadge.bd{background:rgba(239,68,68,.15);color:#f87171}
+.rbadge.pd{background:rgba(99,102,241,.15);color:#a5b4fc}
+.savbtn{margin-top:.4rem;width:100%;padding:.26rem;background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.25);color:var(--gold);border-radius:6px;font-size:.7rem;font-weight:700;cursor:pointer;font-family:'Nunito';transition:background .2s}
+.savbtn:hover{background:rgba(255,215,0,.2)}
+.betsrow{margin-top:.4rem;padding:.32rem .4rem;background:rgba(255,255,255,.03);border-radius:6px;display:flex;flex-wrap:wrap;gap:.25rem}
+.kosec{margin-top:1.4rem}
+.kgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(265px,1fr));gap:.65rem}
+.km{background:var(--card);border:1px solid rgba(255,215,0,.18);border-radius:10px;padding:.72rem}
+.kround{font-size:.63rem;font-weight:700;color:var(--gold2);text-transform:uppercase;letter-spacing:1px;margin-bottom:.32rem}
+.ko-auto{font-size:.68rem;color:#60a5fa;font-style:italic;margin-bottom:.3rem}
+.fbar{display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.75rem}
+.fb{background:var(--card);border:1px solid var(--card2);color:var(--muted);padding:.22rem .65rem;border-radius:20px;font-family:'Nunito';font-size:.73rem;font-weight:700;cursor:pointer;transition:all .2s}
+.fb:hover,.fb.act{background:rgba(255,215,0,.15);border-color:var(--gold);color:var(--gold)}
+.stitle{font-family:'Bebas Neue';font-size:1.5rem;color:var(--gold);letter-spacing:2px;margin-bottom:.9rem;display:flex;align-items:center;gap:.4rem}
+.stitle::before{content:'';width:4px;height:1.3rem;background:var(--red);border-radius:2px;display:inline-block}
+.rtbl{width:100%;border-collapse:collapse}
+.rtbl th{background:var(--dark2);color:var(--muted);text-align:left;padding:.48rem .42rem;font-size:.68rem;text-transform:uppercase;letter-spacing:.5px}
+.rtbl td{padding:.48rem .42rem;border-bottom:1px solid rgba(255,255,255,.04);font-size:.84rem;vertical-align:top}
+.rtbl tr:hover{background:rgba(255,215,0,.02)}
+.rpos{font-family:'Bebas Neue';font-size:1.2rem;color:var(--gold);text-align:center;min-width:26px}
+.rpos.p1{color:#FFD700}.rpos.p2{color:#C0C0C0}.rpos.p3{color:#CD7F32}
+.rpts{font-weight:900;font-size:.95rem;color:var(--gold);text-align:center}
+.rcmt{font-size:.73rem;color:var(--muted);font-style:italic;max-width:250px;line-height:1.4}
+.scrtbl{width:100%;border-collapse:collapse}
+.scrtbl th{background:var(--dark2);color:var(--muted);padding:.42rem;font-size:.68rem;text-transform:uppercase}
+.scrtbl td{padding:.42rem;border-bottom:1px solid rgba(255,255,255,.04);font-size:.84rem}
+.scrank{font-family:'Bebas Neue';font-size:1.1rem;color:var(--gold);text-align:center}
+.scgls{font-weight:900;color:var(--gold);text-align:center}
+.spreds{background:var(--card);border:1px solid var(--gold);border-radius:10px;padding:.85rem;margin-bottom:1.1rem;display:flex;flex-wrap:wrap;gap:.65rem;align-items:flex-start}
+.chcont{display:flex;flex-direction:column;height:calc(100vh - 210px);min-height:370px}
+.chmsgs{flex:1;overflow-y:auto;background:var(--card);border:1px solid var(--card2);border-radius:10px 10px 0 0;padding:.85rem;display:flex;flex-direction:column;gap:.45rem}
+.chmsgs::-webkit-scrollbar{width:4px}
+.chmsgs::-webkit-scrollbar-thumb{background:var(--card2);border-radius:4px}
+.chmsg{display:flex;gap:.45rem;align-items:flex-start}
+.chmsg.own{flex-direction:row-reverse}
+.chav{width:29px;height:29px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--red));display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.72rem;flex-shrink:0}
+.chbub{max-width:68%;background:var(--card2);border-radius:10px;padding:.42rem .72rem;font-size:.84rem;line-height:1.4}
+.chmsg.own .chbub{background:rgba(0,51,153,.35);border:1px solid rgba(0,51,153,.25)}
+.chsndr{font-size:.63rem;color:var(--gold);font-weight:700;margin-bottom:.1rem}
+.chtm{font-size:.58rem;color:var(--muted);margin-top:.12rem}
+.chinbar{display:flex;gap:.42rem;background:var(--card2);border:1px solid var(--card2);border-top:none;border-radius:0 0 10px 10px;padding:.55rem}
+.chin{flex:1;background:var(--dark2);border:1px solid rgba(255,255,255,.1);color:var(--text);border-radius:6px;padding:.42rem .65rem;font-family:'Nunito';font-size:.86rem}
+.chin:focus{outline:none;border-color:var(--gold)}
+.embar{display:flex;gap:.22rem;flex-wrap:wrap;padding:.42rem .55rem;background:rgba(255,255,255,.02);border-radius:8px;margin-bottom:.42rem}
+.em{background:none;border:none;font-size:1.15rem;cursor:pointer;transition:transform .15s;padding:.06rem}
+.em:hover{transform:scale(1.3)}
+.login-screen{max-width:340px;margin:3rem auto;background:var(--card);border:1px solid var(--gold);border-radius:16px;padding:2rem;text-align:center;position:relative;z-index:1}
+.login-screen h2{font-family:'Bebas Neue';font-size:1.8rem;color:var(--gold);letter-spacing:2px;margin-bottom:.5rem}
+.login-screen p{color:var(--muted);font-size:.88rem;margin-bottom:1.5rem}
+.login-screen input{width:100%;background:var(--dark2);border:2px solid var(--card2);color:var(--text);padding:.6rem .9rem;border-radius:8px;font-family:'Nunito';font-size:.95rem;margin-bottom:.8rem}
+.login-screen input:focus{border-color:var(--gold);outline:none}
+.login-screen .existing{margin-top:1.2rem;border-top:1px solid var(--card2);padding-top:1rem}
+.player-btn{display:block;width:100%;background:var(--card2);border:1px solid var(--card2);color:var(--text);padding:.5rem;border-radius:8px;font-family:'Nunito';font-weight:700;font-size:.88rem;cursor:pointer;margin-bottom:.4rem;transition:all .2s;text-align:left}
+.player-btn:hover{border-color:var(--gold);color:var(--gold)}
+.alog{max-width:310px;margin:2.2rem auto;text-align:center}
+.alog input{width:100%;background:var(--card);border:2px solid var(--card2);color:var(--text);padding:.55rem .85rem;border-radius:8px;font-family:'Nunito';font-size:.92rem;margin-bottom:.85rem}
+.alog input:focus{border-color:var(--gold);outline:none}
+.admlist{display:flex;flex-direction:column;gap:.65rem;margin-top:.75rem}
+.ami{background:var(--card);border:1px solid var(--card2);border-radius:10px;padding:.85rem;display:flex;flex-wrap:wrap;align-items:center;gap:.55rem}
+.amlbl{flex:1;font-weight:700;min-width:175px;font-size:.8rem}
+.amisc{display:flex;align-items:center;gap:.32rem}
+.aisc{width:40px;height:34px;text-align:center;background:var(--dark2);border:2px solid var(--card2);color:var(--text);font-size:.95rem;font-weight:900;border-radius:6px;font-family:'Bebas Neue'}
+.aisc:focus{border-color:var(--gold);outline:none}
+.absc{flex:2;min-width:175px;background:var(--dark2);border:1px solid var(--card2);color:var(--text);padding:.35rem .52rem;border-radius:6px;font-family:'Nunito';font-size:.78rem}
+.absc:focus{border-color:var(--gold);outline:none}
+.absc::placeholder{color:var(--muted)}
+.adm-final{background:var(--card);border:1px solid var(--gold);border-radius:12px;padding:1rem;margin-bottom:1.2rem;display:flex;flex-wrap:wrap;gap:.8rem;align-items:flex-end}
+.adm-final h3{width:100%;font-family:'Bebas Neue';font-size:1.1rem;color:var(--gold)}
+.player-row{display:flex;align-items:center;gap:.5rem;background:var(--dark2);border:1px solid var(--card2);border-radius:8px;padding:.45rem .65rem}
+.player-row input{background:var(--card);border:1px solid var(--card2);color:var(--text);padding:.3rem .5rem;border-radius:6px;font-family:'Nunito';font-size:.82rem;flex:1;min-width:80px}
+.player-row input:focus{border-color:var(--gold);outline:none}
+.btn.danger{background:linear-gradient(135deg,#c0392b,#8b0000);color:#fff}
+.loading-full{position:fixed;top:0;left:0;width:100%;height:100%;background:var(--dark);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:1rem}
+.spinner{width:45px;height:45px;border:3px solid var(--card2);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:580px){.logo{font-size:1.4rem}.tb{font-size:.7rem;padding:.52rem .45rem}.mgrid,.kgrid{grid-template-columns:1fr}.uplnl{width:100%}}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading-full" class="loading-full">
+  <div class="spinner"></div>
+  <div style="color:var(--gold);font-family:'Bebas Neue';font-size:1.4rem;letter-spacing:2px">CDM 2026</div>
+  <div style="color:var(--muted);font-size:.85rem">Connexion à la base de données...</div>
+</div>
+
+<!-- LOGIN -->
+<div id="login-screen" class="login-screen" style="display:none">
+  <div style="font-size:3rem;margin-bottom:.5rem">⚽</div>
+  <h2>CDM <span style="color:var(--red)">2026</span></h2>
+  <p>Identifie-toi pour accéder aux pronostics</p>
+  <input type="text" id="login-name" placeholder="Entre ton prénom..." maxlength="20" onkeydown="if(event.key==='Enter')doLogin()">
+  <button class="btn" style="width:100%;padding:.55rem" onclick="doLogin()">🚀 Rejoindre / Se connecter</button>
+  <p id="login-err" style="color:#f87171;font-size:.8rem;margin-top:.5rem;display:none"></p>
+  <div class="existing" id="existing-block" style="display:none">
+    <p style="font-size:.78rem;color:var(--muted);margin-bottom:.6rem">Ou clique sur ton nom :</p>
+    <div id="existing-list"></div>
+  </div>
+</div>
+
+<header id="main-header" style="display:none">
+  <div class="hi">
+    <div class="logo">⚽ CDM <span>2026</span></div>
+    <nav>
+      <button class="tb act" onclick="showTab('matchs')">🏟 Matchs</button>
+      <button class="tb" onclick="showTab('classement')">🏆 Classement</button>
+      <button class="tb" onclick="showTab('buteurs')">⚽ Buteurs</button>
+      <button class="tb" onclick="showTab('chat')">💬 Chat <span class="notif hid" id="cn">0</span></button>
+      <button class="tb" onclick="showTab('admin')">🔐 Admin</button>
+    </nav>
+    <div class="uplnl">
+      <span class="cur-player"><span class="sync-dot"></span><span id="cur-lbl">???</span></span>
+      <button class="btn out" onclick="doLogout()">Changer</button>
+    </div>
+  </div>
+</header>
+
+<main id="main-content" style="display:none">
+  <div id="tab-matchs" class="tc act">
+    <div id="sbar" class="sbar"></div>
+    <div class="gbets" id="gbets-block">
+      <h3>🏆 Paris Spéciaux — à poser avant le 11 juin 21h00</h3>
+      <div class="bfield"><label>Vainqueur de la compétition <span class="bonus-badge">+6 pts bonus</span></label><input type="text" id="bw" placeholder="Ex: France"></div>
+      <div class="bfield"><label>Meilleur buteur <span class="bonus-badge">+3 pts bonus</span></label><input type="text" id="bs" placeholder="Ex: Mbappé"></div>
+      <button class="btn" id="gbtn" onclick="saveGB()">💾 Sauvegarder</button>
+      <span class="saved-ok" id="gok">✅ Sauvegardé !</span>
+    </div>
+    <div class="legend">
+      <div class="ldot"><div class="lc" style="background:rgba(34,197,94,.6)"></div>1er qualifié</div>
+      <div class="ldot"><div class="lc" style="background:rgba(59,130,246,.6)"></div>2ème qualifié</div>
+      <div class="ldot"><div class="lc" style="background:rgba(251,191,36,.5)"></div>Pot. qualifié (3ème)</div>
+      <div class="ldot"><div class="lc" style="background:rgba(239,68,68,.4)"></div>Éliminé</div>
+    </div>
+    <div id="grpcont"></div>
+    <div class="kosec">
+      <div class="stitle">⚡ Phase Éliminatoire</div>
+      <div class="fbar">
+        <button class="fb act" onclick="fKO('all',this)">Tous</button>
+        <button class="fb" onclick="fKO('r16',this)">1/16e</button>
+        <button class="fb" onclick="fKO('qf',this)">1/8e</button>
+        <button class="fb" onclick="fKO('sf',this)">Quarts</button>
+        <button class="fb" onclick="fKO('semi',this)">Demies</button>
+        <button class="fb" onclick="fKO('fin',this)">Finale</button>
+      </div>
+      <div class="kgrid" id="kocont"></div>
+    </div>
+  </div>
+  <div id="tab-classement" class="tc">
+    <div class="stitle">🏆 Classement des Pronostiqueurs</div>
+    <div style="font-size:.8rem;color:var(--muted);margin-bottom:1rem;background:var(--card);border-radius:8px;padding:.6rem 1rem;border-left:3px solid var(--gold)">
+      ⭐ Score exact = 3pts &nbsp;|&nbsp; ✅ Bon résultat = 1pt &nbsp;|&nbsp; 🏆 Vainqueur tournoi = +6pts bonus &nbsp;|&nbsp; ⚽ Meilleur buteur = +3pts bonus &nbsp;|&nbsp; Égalité : scores exacts d'abord, puis bons résultats
+    </div>
+    <div id="rkgcont"><p style="color:var(--muted);font-style:italic">Chargement...</p></div>
+  </div>
+  <div id="tab-buteurs" class="tc">
+    <div class="stitle">⚽ Classement des Buteurs</div>
+    <div class="spreds" id="spreds"></div>
+    <div id="scrcont"><p style="color:var(--muted);font-style:italic">Les buteurs apparaîtront au fil des matchs...</p></div>
+  </div>
+  <div id="tab-chat" class="tc">
+    <div class="stitle">💬 Tchat en Direct</div>
+    <div class="embar" id="embar"></div>
+    <div class="chcont">
+      <div class="chmsgs" id="chmsgs"><div style="text-align:center;color:var(--muted);font-style:italic;margin:auto;padding-top:2rem">Chargement...</div></div>
+      <div class="chinbar">
+        <input class="chin" id="chin" placeholder="Ton message..." onkeydown="if(event.key==='Enter')sendMsg()">
+        <button class="btn" onclick="sendMsg()">Envoyer ✈️</button>
+      </div>
+    </div>
+  </div>
+  <div id="tab-admin" class="tc">
+    <div class="stitle">🔐 Administration</div>
+    <div id="alg" class="alog">
+      <p style="color:var(--muted);margin-bottom:.85rem;font-size:.88rem">Accès réservé à l'administrateur</p>
+      <input type="password" id="apwd" placeholder="Mot de passe..." onkeydown="if(event.key==='Enter')checkAdm()">
+      <button class="btn" onclick="checkAdm()">🔓 Connexion</button>
+      <p id="aerr" style="color:#f87171;margin-top:.65rem;font-size:.8rem;display:none">Mot de passe incorrect !</p>
+    </div>
+    <div id="apnl" style="display:none">
+      <p style="color:var(--green);margin-bottom:.8rem;font-size:.88rem">✅ Mode admin — toutes les saisies sont synchronisées en temps réel pour tous les participants.</p>
+
+      <!-- GESTION JOUEURS -->
+      <div class="adm-final" style="margin-bottom:1rem">
+        <h3>👥 Gestion des Participants</h3>
+        <div id="adm-players-list" style="width:100%;display:flex;flex-direction:column;gap:.5rem"></div>
+      </div>
+
+      <div class="adm-final">
+        <h3>🏆 Valider les paris spéciaux (fin de tournoi)</h3>
+        <div class="bfield"><label>Vainqueur réel du tournoi</label><input type="text" id="adm-winner" placeholder="Ex: France"></div>
+        <div class="bfield"><label>Meilleur buteur réel</label><input type="text" id="adm-scorer" placeholder="Ex: Mbappé"></div>
+        <button class="btn sm" onclick="admSaveFinal()">✅ Valider</button>
+        <span id="final-ok" class="saved-ok">✅ Sauvegardé !</span>
+      </div>
+      <div class="stitle" style="font-size:1.05rem">Saisir les résultats des matchs</div>
+      <div class="admlist" id="admlst"></div>
+    </div>
+  </div>
+</main>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, get, onValue, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBve4HgrzUnWvkQWdQQEjnFuPTV9tQvJRk",
+  authDomain: "cdm2026-1b19d.firebaseapp.com",
+  databaseURL: "https://cdm2026-1b19d-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "cdm2026-1b19d",
+  storageBucket: "cdm2026-1b19d.firebasestorage.app",
+  messagingSenderId: "486130463740",
+  appId: "1:486130463740:web:3f857332bf7bd202b83879"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// ===== COMMENTAIRES =====
+const ALL_COMMENTS = {
+  1:["👑 Le Pelé des pronostics. Les autres jouent pour la photo.","🧠 Génie absolu. T'aurais dû bosser à la FIFA plutôt qu'ici.","🏆 1er et ça se voit. Les autres peuvent rentrer chez eux.","🌟 Au sommet comme Mbappé, mais toi t'as pas besoin de penalty.","👑 Intouchable. On se demande si t'as pas des infos en avance.","🎯 Sniper des pronostics. Chaque score est une balle dans le mille.","🔮 T'es voyant ou t'as simplement trompé tout le monde depuis le début ?","💎 Premier de classe. Même le prof est impressionné.","🚀 Dans une autre galaxie. Le podium, c'est pour les autres.","🦁 Le roi de la jungle des pronostics. Tous tremblent sur ton passage.","🧙 Sorcier des scores. On commence à parler d'enquête.","⚡ Imbattable. C'est beau et légèrement suspect.","🌍 Le meilleur pronostiqueur de cette compétition. Et probablement du monde.","🍾 Champagne ! Tu mérites d'être fêté comme une vraie star."],
+  2:["🥈 2ème... l'éternel perdant du podium. Presque champion, presque.","😤 Si proche du sommet. Tu peux pleurer, on comprend.","🥈 2ème c'est le 1er des losers. Désolé c'est la règle.","😌 La médaille d'argent : pour ceux qui ont raté l'or de peu.","🥈 Vice-champion ! Ce qui veut dire : champion des nuls.","😔 Toujours 2ème. Même dans ta propre vie tu es 2ème.","🪞 T'as regardé le 1er et essayé de l'imiter. Raté.","🎻 Le violon du classement. Beau mais pas le plus important.","🥺 Si près, si loin. La vie est une série de 2èmes places.","😏 Tu finiras peut-être 1er... au prochain tournoi.","🤏 À deux doigts du titre. Les deux doigts sont cassés.","💨 Le souffle du vainqueur dans la nuque toute la compétition."],
+  3:["🥉 Médaille de bronze ! L'accessit des pronostics.","🏅 3ème... juste là pour que le podium soit complet.","🥉 Bronze. Parce que personne ne se souvient du 4ème.","😅 Sur le podium mais personne te regarde vraiment.","🥉 3ème comme la France au Mondial 1986. Historique !","😐 Tu méritais mieux... ou pas. On sait plus trop.","🌻 Le bronze brille aussi, mais moins. Beaucoup moins.","🤷 3ème. T'as fait de ton mieux. C'était pas suffisant.","🎖️ Podium quand même ! La honte aurait été de finir 4ème.","🧡 3ème place et le cœur brisé. C'est poétique.","😤 T'aurais dû travailler plus ton analyse de la phase de poules."],
+  4:["😞 4ème. Comme la France au Qatar 2022. Pas de médaille.","🚪 À la porte du podium. La porte était fermée à clé.","😐 4ème... le purgatoire des pronostics.","💔 Si proche, si loin. La vie est cruelle parfois.","😑 4ème. Ni bon ni mauvais. Juste... oublié.","🤦 Le premier des non-classés. C'est un titre aussi.","😶 4ème. On te regarde avec compassion sincère.","🕳️ Tu as glissé entre les mailles du podium. Dommage.","💀 4ème. La mort lente. Le supplice des pronostics.","🐢 T'as commencé fort et t'as ralenti sur la fin. Classique."],
+  5:["🤷 5ème. Au milieu, comme ta carrière footballistique.","😑 Ni chaud ni froid. Tu es le tiède de ce classement.","5️⃣ 5ème comme les cinq doigts de la main. Aucun ne sort du lot.","🤔 Tu vises la médaille ou tu acceptes ton destin médiocre ?","😶 5ème. Tellement dans la moyenne que c'en est déprimant.","🌫️ Tu flottes dans le classement comme un nuage sans pluie.","📊 Exactement dans la moyenne statistique. Félicitations.","🧻 5ème. Utile mais pas mémorable.","🐑 Tu suis le troupeau sans te distinguer. Bêê.","🌊 T'as pas fait de vagues. Dans aucun sens du terme."],
+  6:["😅 6ème. La moitié du classement. Pile au centre de la médiocrité.","🎭 6ème. Ni héros ni zéro. Juste... présent.","🧊 6ème. Aussi passionnant que la météo en novembre.","😬 Tu vises haut ou tu es enfin réaliste sur ton niveau ?","6️⃣ 6ème. Le chiffre du diable des pronostics.","🚂 T'es le wagon du milieu. Ni locomotive ni queue.","😒 6ème. Même ton chien fait mieux en choisissant au hasard.","🎲 T'aurais eu le même résultat en jetant des dés. Sérieusement.","📎 6ème. Comme un trombone : présent mais dispensable.","🤌 Tout ce travail pour finir 6ème. Magnifique."],
+  7:["🪑 7ème. Ni bon ni mauvais. Juste... là.","😴 7ème. Aussi excitant qu'un 0-0 en phase de poules.","🤡 7ème. Le numéro porte-bonheur qui n'a pas tenu ses promesses.","💤 Tu dors pendant les matchs ou c'est une stratégie ?","7️⃣ 7 comme les 7 péchés capitaux. La paresse semble dominer.","🎠 T'as tourné en rond toute la compétition. Bravo.","😑 7ème. La zone grise. L'antichambre de la honte.","🌵 7ème. Sec. Sans saveur. Sans eau.","🐌 T'avances doucement vers le bas du classement.","😶‍🌫️ 7ème. T'as l'air d'avoir pronostiqué en dormant."],
+  8:["😬 8ème. Top 10 par le bas. Mais top 10 quand même, right ?","🤏 Si près du néant, si loin du podium.","😒 8ème. T'aurais mieux fait de lancer une pièce.","🎲 T'as pronostiqué au hasard ou c'est encore pire ?","8️⃣ 8ème. Le chiffre de l'infini. L'infinie médiocrité.","🧟 8ème. Ni vivant ni mort dans le classement.","😩 8ème. Le courage de participer sans le talent de gagner.","🔮 T'aurais dû consulter une voyante. Même résultat.","🥀 La fleur fanée du classement. Belle histoire.","💸 T'aurais mieux investi en achetant des chaussettes."],
+  9:["🙈 9ème. On entre dans la zone de turbulences.","😰 9ème. Là ça commence à faire physiquement mal.","💸 T'aurais mieux fait de parier à Winamax.","🤦 9ème. Même ton chat aurait fait mieux en marchant sur le clavier.","😵 9ème. Le début de la fin. La lumière s'éteint doucement.","🚨 9ème. Alerte rouge dans le classement.","🧯 9ème. On appelle les pompiers pour éteindre cette catastrophe.","😬 T'as regardé les matchs ou tu pronostiques les yeux fermés ?","🪦 9ème. Un pied dans la tombe du classement.","🌪️ 9ème. Une tornade de mauvais pronostics t'a frappé."],
+  10:["😂 Top 10 ! Par le bas. Mais top 10 quand même hein !","🔟 10ème. Dernier de la première moitié ou premier de la seconde ?","💩 10ème. Dignement indigne.","😭 10ème. Même le VAR ne peut pas te sauver à ce stade.","🤣 10 sur 15. T'as raté ta vocation de devin.","🎻 10ème. Le violoncelle du classement. Grave.","😬 10ème. Tu commences à inquiéter tes proches.","💀 Dixième. Dix. 10. Dans tous les sens c'est catastrophique.","😩 10ème. On te plaindrait presque si c'était pas ta faute."],
+  11:["💩 11ème. Tu es le gardien remplaçant de ce classement.","🪦 11ème. Zone rouge. Urgence vitale détectée.","😱 11ème ! Même ton horoscope t'avait prévenu.","🚑 11ème. On appelle les secours ou tu t'en sors ?","😤 11ème. Inacceptable. Honteux. Révoltant. Mais vrai.","🤡 11ème. Le clown de service. Ta mission est accomplie.","🌊 T'es en train de couler doucement. On te voit.","🧻 11ème. On se mouche dedans et on passe à autre chose.","😔 11ème. T'as la tête dans les chaussettes depuis le début.","🌀 11ème. Le vortex de la médiocrité t'a englouti."],
+  12:["🧊 12ème. Froid. Très froid. Polaire. Sibérien.","☃️ 12ème. Tu refroidis l'ambiance à chaque pronostic raté.","🌨️ 12ème. L'hiver de tes pronostics est interminable.","❄️ 12ème. Même la Sibérie te trouve trop froid.","🥶 12ème. Hypothermie des pronostics détectée cliniquement.","🐧 12ème. Un pingouin pronostique mieux que toi et il a pas le câble.","🏔️ 12ème. T'es au fond du classement comme au fond d'une crevasse.","😰 12ème. La zone de relégation. Honte sur ta maison.","🤧 12ème. T'as chopé un rhume des pronostics en début de tournoi.","💀 12ème. Techniquement encore vivant dans le classement."],
+  13:["☠️ 13ème. Chiffre maudit ou destin mérité ? Les deux, mon général.","🎃 13ème. Vendredi 13 tous les jours pour toi depuis le début.","💀 13ème. Même les superstitions t'ont abandonné.","👻 13ème. Le fantôme du classement. On te voit à peine.","🔮 13ème. Ton avenir dans les pronostics est aussi sombre que ton présent.","😈 13ème. Le diable aussi est meilleur pronostiqueur que toi.","🌑 13ème. La face cachée et sombre du classement.","😱 TREIZIÈME ! Les autres joueurs te regardent avec pitié.","🧟 13ème. Zombie du classement. Errant sans but ni points."],
+  14:["🤦 14ème. Avant-dernier. T'aurais dû écouter les analyses d'avant-match.","😩 Avant-dernier. La lanterne rouge te regarde de haut.","🛑 14ème. Stop. Rends ton badge de pronostiqueur.","😪 14ème. Presque dernier. Totalement décevant.","🤮 14ème. C'est beau comme un but contre son camp en finale.","🔥 14ème. Tout brûle autour de toi dans ce classement.","😬 14ème. T'as battu 1 seule personne. Profite-en bien.","💸 14ème. Chaque pronostic t'a coûté des neurones.","🤡 AVANT-DERNIER ! C'est une performance à l'envers.","🪦 14ème. La tombe du pronostiqueur est déjà creusée."],
+  15:["😭 DERNIER ! Sache qu'être dernier, ça demande aussi du talent.","🏳️ Dernier. T'as même pas eu honte de participer. Chapeau.","💀 LANTERNE ROUGE. Félicitations pour cet exploit inversé.","🤣 Dernier ! C'est tellement nul que c'en est presque magnifique.","🥄 La cuillère de bois est pour toi. Encadre-la.","😂 Dernier. Même l'arbitre de touche pronostique mieux que toi.","🎖️ Le prix du dernier. Une médaille en plastique pour toi.","👏 DERNIER ! On salue l'exploit. On pleure intérieurement.","🌋 Dernier. Une éruption de mauvais pronostics depuis le début.","🤦‍♀️ Dernier. Ta famille est déçue. Tes amis aussi. Et toi ?","🎪 Le clown principal du tournoi. Les autres t'applaudissent.","💩 Dernier. Dans tous les sens du terme. Totalement. Définitivement.","😇 Dernier mais avec le sourire ? Chapeau l'artiste.","🪦 R.I.P tes pronostics. Enterrés avec les honneurs de la médiocrité."]
+};
+
+const GROUPS={A:{teams:['🇲🇽 Mexique','🇿🇦 Afrique du Sud','🇰🇷 Corée du Sud','🇨🇿 Rép. Tchèque']},B:{teams:['🇨🇦 Canada','🇧🇦 Bosnie-Herzégovine','🇶🇦 Qatar','🇨🇭 Suisse']},C:{teams:['🇧🇷 Brésil','🇲🇦 Maroc','🇭🇹 Haïti','🏴󠁧󠁢󠁳󠁣󠁴󠁿 Écosse']},D:{teams:['🇺🇸 États-Unis','🇵🇾 Paraguay','🇦🇺 Australie','🇹🇷 Turquie']},E:{teams:['🇩🇪 Allemagne','🇨🇼 Curaçao',"🇨🇮 Côte d'Ivoire",'🇪🇨 Équateur']},F:{teams:['🇳🇱 Pays-Bas','🇯🇵 Japon','🇸🇪 Suède','🇹🇳 Tunisie']},G:{teams:['🇧🇪 Belgique','🇪🇬 Égypte','🇮🇷 Iran','🇳🇿 Nouvelle-Zélande']},H:{teams:['🇪🇸 Espagne','🇨🇻 Cap-Vert','🇸🇦 Arabie saoudite','🇺🇾 Uruguay']},I:{teams:['🇫🇷 France','🇸🇳 Sénégal','🇮🇶 Irak','🇳🇴 Norvège']},J:{teams:['🇦🇷 Argentine','🇦🇹 Autriche','🇩🇿 Algérie','🇯🇴 Jordanie']},K:{teams:['🇵🇹 Portugal','🇺🇿 Ouzbékistan','🇨🇱 Chili','🇹🇭 Thaïlande']},L:{teams:['🏴󠁧󠁢󠁥󠁮󠁧󠁿 Angleterre','🇸🇳 Sénégal','🇨🇴 Colombie','🇸🇮 Slovénie']}};
+
+const GM=[{id:'A1',g:'A',h:'🇲🇽 Mexique',a:'🇿🇦 Afrique du Sud',d:'11/06/2026',t:'21:00',v:'Azteca, Mexico'},{id:'A2',g:'A',h:'🇰🇷 Corée du Sud',a:'🇨🇿 Rép. Tchèque',d:'12/06/2026',t:'04:00',v:'Guadalajara'},{id:'A3',g:'A',h:'🇨🇿 Rép. Tchèque',a:'🇿🇦 Afrique du Sud',d:'18/06/2026',t:'18:00',v:'Atlanta'},{id:'A4',g:'A',h:'🇲🇽 Mexique',a:'🇰🇷 Corée du Sud',d:'19/06/2026',t:'03:00',v:'Guadalajara'},{id:'A5',g:'A',h:'🇨🇿 Rép. Tchèque',a:'🇲🇽 Mexique',d:'25/06/2026',t:'03:00',v:'Azteca, Mexico'},{id:'A6',g:'A',h:'🇿🇦 Afrique du Sud',a:'🇰🇷 Corée du Sud',d:'25/06/2026',t:'03:00',v:'Monterrey'},{id:'B1',g:'B',h:'🇨🇦 Canada',a:'🇧🇦 Bosnie-Herzégovine',d:'12/06/2026',t:'21:00',v:'Toronto'},{id:'B2',g:'B',h:'🇶🇦 Qatar',a:'🇨🇭 Suisse',d:'13/06/2026',t:'21:00',v:'San Francisco'},{id:'B3',g:'B',h:'🇨🇭 Suisse',a:'🇧🇦 Bosnie-Herzégovine',d:'18/06/2026',t:'21:00',v:'Los Angeles'},{id:'B4',g:'B',h:'🇨🇦 Canada',a:'🇶🇦 Qatar',d:'19/06/2026',t:'00:00',v:'Vancouver'},{id:'B5',g:'B',h:'🇨🇭 Suisse',a:'🇨🇦 Canada',d:'24/06/2026',t:'21:00',v:'Vancouver'},{id:'B6',g:'B',h:'🇧🇦 Bosnie-Herzégovine',a:'🇶🇦 Qatar',d:'24/06/2026',t:'21:00',v:'Seattle'},{id:'C1',g:'C',h:'🇧🇷 Brésil',a:'🇲🇦 Maroc',d:'14/06/2026',t:'00:00',v:'New York'},{id:'C2',g:'C',h:'🇭🇹 Haïti',a:'🏴󠁧󠁢󠁳󠁣󠁴󠁿 Écosse',d:'14/06/2026',t:'03:00',v:'Boston'},{id:'C3',g:'C',h:'🏴󠁧󠁢󠁳󠁣󠁴󠁿 Écosse',a:'🇲🇦 Maroc',d:'20/06/2026',t:'00:00',v:'Boston'},{id:'C4',g:'C',h:'🇧🇷 Brésil',a:'🇭🇹 Haïti',d:'20/06/2026',t:'03:00',v:'Philadelphie'},{id:'C5',g:'C',h:'🏴󠁧󠁢󠁳󠁣󠁴󠁿 Écosse',a:'🇧🇷 Brésil',d:'25/06/2026',t:'00:00',v:'Miami'},{id:'C6',g:'C',h:'🇲🇦 Maroc',a:'🇭🇹 Haïti',d:'25/06/2026',t:'00:00',v:'Atlanta'},{id:'D1',g:'D',h:'🇺🇸 États-Unis',a:'🇵🇾 Paraguay',d:'13/06/2026',t:'03:00',v:'Los Angeles'},{id:'D2',g:'D',h:'🇦🇺 Australie',a:'🇹🇷 Turquie',d:'13/06/2026',t:'06:00',v:'Vancouver'},{id:'D3',g:'D',h:'🇹🇷 Turquie',a:'🇵🇾 Paraguay',d:'19/06/2026',t:'06:00',v:'San Francisco'},{id:'D4',g:'D',h:'🇺🇸 États-Unis',a:'🇦🇺 Australie',d:'19/06/2026',t:'21:00',v:'Seattle'},{id:'D5',g:'D',h:'🇹🇷 Turquie',a:'🇺🇸 États-Unis',d:'26/06/2026',t:'04:00',v:'Los Angeles'},{id:'D6',g:'D',h:'🇵🇾 Paraguay',a:'🇦🇺 Australie',d:'26/06/2026',t:'04:00',v:'San Francisco'},{id:'E1',g:'E',h:'🇩🇪 Allemagne',a:'🇨🇼 Curaçao',d:'14/06/2026',t:'19:00',v:'Houston'},{id:'E2',g:'E',h:"🇨🇮 Côte d'Ivoire",a:'🇪🇨 Équateur',d:'15/06/2026',t:'01:00',v:'Philadelphie'},{id:'E3',g:'E',h:'🇩🇪 Allemagne',a:"🇨🇮 Côte d'Ivoire",d:'20/06/2026',t:'22:00',v:'Toronto'},{id:'E4',g:'E',h:'🇪🇨 Équateur',a:'🇨🇼 Curaçao',d:'21/06/2026',t:'02:00',v:'Kansas City'},{id:'E5',g:'E',h:'🇪🇨 Équateur',a:'🇩🇪 Allemagne',d:'25/06/2026',t:'22:00',v:'New York'},{id:'E6',g:'E',h:'🇨🇼 Curaçao',a:"🇨🇮 Côte d'Ivoire",d:'25/06/2026',t:'22:00',v:'Philadelphie'},{id:'F1',g:'F',h:'🇳🇱 Pays-Bas',a:'🇯🇵 Japon',d:'14/06/2026',t:'22:00',v:'Dallas'},{id:'F2',g:'F',h:'🇸🇪 Suède',a:'🇹🇳 Tunisie',d:'15/06/2026',t:'04:00',v:'Monterrey'},{id:'F3',g:'F',h:'🇳🇱 Pays-Bas',a:'🇸🇪 Suède',d:'20/06/2026',t:'19:00',v:'Houston'},{id:'F4',g:'F',h:'🇹🇳 Tunisie',a:'🇯🇵 Japon',d:'21/06/2026',t:'06:00',v:'Monterrey'},{id:'F5',g:'F',h:'🇹🇳 Tunisie',a:'🇳🇱 Pays-Bas',d:'26/06/2026',t:'01:00',v:'Kansas City'},{id:'F6',g:'F',h:'🇯🇵 Japon',a:'🇸🇪 Suède',d:'26/06/2026',t:'01:00',v:'Dallas'},{id:'G1',g:'G',h:'🇧🇪 Belgique',a:'🇪🇬 Égypte',d:'15/06/2026',t:'21:00',v:'Seattle'},{id:'G2',g:'G',h:'🇮🇷 Iran',a:'🇳🇿 Nouvelle-Zélande',d:'16/06/2026',t:'03:00',v:'Los Angeles'},{id:'G3',g:'G',h:'🇧🇪 Belgique',a:'🇮🇷 Iran',d:'21/06/2026',t:'21:00',v:'Los Angeles'},{id:'G4',g:'G',h:'🇳🇿 Nouvelle-Zélande',a:'🇪🇬 Égypte',d:'22/06/2026',t:'03:00',v:'Vancouver'},{id:'G5',g:'G',h:'🇳🇿 Nouvelle-Zélande',a:'🇧🇪 Belgique',d:'27/06/2026',t:'05:00',v:'Vancouver'},{id:'G6',g:'G',h:'🇪🇬 Égypte',a:'🇮🇷 Iran',d:'27/06/2026',t:'05:00',v:'Seattle'},{id:'H1',g:'H',h:'🇪🇸 Espagne',a:'🇨🇻 Cap-Vert',d:'15/06/2026',t:'18:00',v:'Atlanta'},{id:'H2',g:'H',h:'🇸🇦 Arabie saoudite',a:'🇺🇾 Uruguay',d:'16/06/2026',t:'00:00',v:'Miami'},{id:'H3',g:'H',h:'🇪🇸 Espagne',a:'🇸🇦 Arabie saoudite',d:'21/06/2026',t:'18:00',v:'Atlanta'},{id:'H4',g:'H',h:'🇺🇾 Uruguay',a:'🇨🇻 Cap-Vert',d:'22/06/2026',t:'00:00',v:'Miami'},{id:'H5',g:'H',h:'🇺🇾 Uruguay',a:'🇪🇸 Espagne',d:'27/06/2026',t:'02:00',v:'Guadalajara'},{id:'H6',g:'H',h:'🇨🇻 Cap-Vert',a:'🇸🇦 Arabie saoudite',d:'27/06/2026',t:'02:00',v:'Houston'},{id:'I1',g:'I',h:'🇫🇷 France',a:'🇸🇳 Sénégal',d:'16/06/2026',t:'21:00',v:'New York (MetLife)'},{id:'I2',g:'I',h:'🇮🇶 Irak',a:'🇳🇴 Norvège',d:'17/06/2026',t:'00:00',v:'Boston'},{id:'I3',g:'I',h:'🇫🇷 France',a:'🇮🇶 Irak',d:'22/06/2026',t:'23:00',v:'Philadelphie'},{id:'I4',g:'I',h:'🇳🇴 Norvège',a:'🇸🇳 Sénégal',d:'23/06/2026',t:'02:00',v:'New York'},{id:'I5',g:'I',h:'🇳🇴 Norvège',a:'🇫🇷 France',d:'26/06/2026',t:'21:00',v:'Boston'},{id:'I6',g:'I',h:'🇸🇳 Sénégal',a:'🇮🇶 Irak',d:'26/06/2026',t:'21:00',v:'Toronto'},{id:'J1',g:'J',h:'🇦🇹 Autriche',a:'🇯🇴 Jordanie',d:'16/06/2026',t:'06:00',v:'San Francisco'},{id:'J2',g:'J',h:'🇦🇷 Argentine',a:'🇩🇿 Algérie',d:'17/06/2026',t:'03:00',v:'Kansas City'},{id:'J3',g:'J',h:'🇦🇷 Argentine',a:'🇦🇹 Autriche',d:'22/06/2026',t:'19:00',v:'Dallas'},{id:'J4',g:'J',h:'🇯🇴 Jordanie',a:'🇩🇿 Algérie',d:'23/06/2026',t:'05:00',v:'San Francisco'},{id:'J5',g:'J',h:'🇯🇴 Jordanie',a:'🇦🇷 Argentine',d:'28/06/2026',t:'04:00',v:'Kansas City'},{id:'J6',g:'J',h:'🇩🇿 Algérie',a:'🇦🇹 Autriche',d:'28/06/2026',t:'04:00',v:'Dallas'},{id:'K1',g:'K',h:'🇵🇹 Portugal',a:'🇺🇿 Ouzbékistan',d:'17/06/2026',t:'21:00',v:'Houston'},{id:'K2',g:'K',h:'🇨🇱 Chili',a:'🇹🇭 Thaïlande',d:'18/06/2026',t:'00:00',v:'Kansas City'},{id:'K3',g:'K',h:'🇵🇹 Portugal',a:'🇨🇱 Chili',d:'23/06/2026',t:'21:00',v:'Seattle'},{id:'K4',g:'K',h:'🇹🇭 Thaïlande',a:'🇺🇿 Ouzbékistan',d:'24/06/2026',t:'00:00',v:'Dallas'},{id:'K5',g:'K',h:'🇹🇭 Thaïlande',a:'🇵🇹 Portugal',d:'28/06/2026',t:'21:00',v:'Miami'},{id:'K6',g:'K',h:'🇺🇿 Ouzbékistan',a:'🇨🇱 Chili',d:'28/06/2026',t:'21:00',v:'Los Angeles'},{id:'L1',g:'L',h:'🏴󠁧󠁢󠁥󠁮󠁧󠁿 Angleterre',a:'🇸🇳 Sénégal',d:'18/06/2026',t:'00:00',v:'Houston'},{id:'L2',g:'L',h:'🇨🇴 Colombie',a:'🇸🇮 Slovénie',d:'18/06/2026',t:'03:00',v:'Kansas City'},{id:'L3',g:'L',h:'🏴󠁧󠁢󠁥󠁮󠁧󠁿 Angleterre',a:'🇨🇴 Colombie',d:'24/06/2026',t:'00:00',v:'Miami'},{id:'L4',g:'L',h:'🇸🇮 Slovénie',a:'🇸🇳 Sénégal',d:'24/06/2026',t:'03:00',v:'Seattle'},{id:'L5',g:'L',h:'🇸🇮 Slovénie',a:'🏴󠁧󠁢󠁥󠁮󠁧󠁿 Angleterre',d:'28/06/2026',t:'00:00',v:'Dallas'},{id:'L6',g:'L',h:'🇸🇳 Sénégal',a:'🇨🇴 Colombie',d:'28/06/2026',t:'00:00',v:'Toronto'}];
+
+const KMT=[{id:'R1',r:'r16',lb:'1/16e #1',d:'04/07/2026',t:'21:00',slot1:{type:'first',grp:'A'},slot2:{type:'best3',idx:0}},{id:'R2',r:'r16',lb:'1/16e #2',d:'04/07/2026',t:'18:00',slot1:{type:'first',grp:'C'},slot2:{type:'best3',idx:1}},{id:'R3',r:'r16',lb:'1/16e #3',d:'05/07/2026',t:'00:00',slot1:{type:'first',grp:'B'},slot2:{type:'best3',idx:2}},{id:'R4',r:'r16',lb:'1/16e #4',d:'05/07/2026',t:'18:00',slot1:{type:'second',grp:'A'},slot2:{type:'second',grp:'C'}},{id:'R5',r:'r16',lb:'1/16e #5',d:'05/07/2026',t:'21:00',slot1:{type:'first',grp:'F'},slot2:{type:'best3',idx:3}},{id:'R6',r:'r16',lb:'1/16e #6',d:'06/07/2026',t:'18:00',slot1:{type:'second',grp:'D'},slot2:{type:'second',grp:'E'}},{id:'R7',r:'r16',lb:'1/16e #7',d:'06/07/2026',t:'21:00',slot1:{type:'first',grp:'E'},slot2:{type:'best3',idx:4}},{id:'R8',r:'r16',lb:'1/16e #8',d:'07/07/2026',t:'00:00',slot1:{type:'second',grp:'B'},slot2:{type:'second',grp:'F'}},{id:'R9',r:'r16',lb:'1/16e #9',d:'07/07/2026',t:'18:00',slot1:{type:'first',grp:'H'},slot2:{type:'best3',idx:5}},{id:'R10',r:'r16',lb:'1/16e #10',d:'07/07/2026',t:'21:00',slot1:{type:'second',grp:'G'},slot2:{type:'second',grp:'H'}},{id:'R11',r:'r16',lb:'1/16e #11',d:'08/07/2026',t:'18:00',slot1:{type:'first',grp:'I'},slot2:{type:'second',grp:'J'}},{id:'R12',r:'r16',lb:'1/16e #12',d:'08/07/2026',t:'21:00',slot1:{type:'first',grp:'G'},slot2:{type:'second',grp:'I'}},{id:'R13',r:'r16',lb:'1/16e #13',d:'09/07/2026',t:'00:00',slot1:{type:'first',grp:'J'},slot2:{type:'second',grp:'K'}},{id:'R14',r:'r16',lb:'1/16e #14',d:'09/07/2026',t:'18:00',slot1:{type:'first',grp:'K'},slot2:{type:'second',grp:'L'}},{id:'R15',r:'r16',lb:'1/16e #15',d:'09/07/2026',t:'21:00',slot1:{type:'first',grp:'L'},slot2:{type:'best3',idx:6}},{id:'R16',r:'r16',lb:'1/16e #16',d:'10/07/2026',t:'00:00',slot1:{type:'best3',idx:7},slot2:{type:'best3',idx:8}},{id:'Q1',r:'qf',lb:'1/8e #1',d:'11/07/2026',t:'21:00',slot1:{type:'winner',mid:'R1'},slot2:{type:'winner',mid:'R2'}},{id:'Q2',r:'qf',lb:'1/8e #2',d:'12/07/2026',t:'00:00',slot1:{type:'winner',mid:'R3'},slot2:{type:'winner',mid:'R4'}},{id:'Q3',r:'qf',lb:'1/8e #3',d:'12/07/2026',t:'21:00',slot1:{type:'winner',mid:'R5'},slot2:{type:'winner',mid:'R6'}},{id:'Q4',r:'qf',lb:'1/8e #4',d:'13/07/2026',t:'00:00',slot1:{type:'winner',mid:'R7'},slot2:{type:'winner',mid:'R8'}},{id:'Q5',r:'qf',lb:'1/8e #5',d:'13/07/2026',t:'21:00',slot1:{type:'winner',mid:'R9'},slot2:{type:'winner',mid:'R10'}},{id:'Q6',r:'qf',lb:'1/8e #6',d:'14/07/2026',t:'00:00',slot1:{type:'winner',mid:'R11'},slot2:{type:'winner',mid:'R12'}},{id:'Q7',r:'qf',lb:'1/8e #7',d:'14/07/2026',t:'21:00',slot1:{type:'winner',mid:'R13'},slot2:{type:'winner',mid:'R14'}},{id:'Q8',r:'qf',lb:'1/8e #8',d:'15/07/2026',t:'00:00',slot1:{type:'winner',mid:'R15'},slot2:{type:'winner',mid:'R16'}},{id:'S1',r:'sf',lb:'Quart #1',d:'15/07/2026',t:'21:00',slot1:{type:'winner',mid:'Q1'},slot2:{type:'winner',mid:'Q2'}},{id:'S2',r:'sf',lb:'Quart #2',d:'16/07/2026',t:'00:00',slot1:{type:'winner',mid:'Q3'},slot2:{type:'winner',mid:'Q4'}},{id:'S3',r:'sf',lb:'Quart #3',d:'16/07/2026',t:'21:00',slot1:{type:'winner',mid:'Q5'},slot2:{type:'winner',mid:'Q6'}},{id:'S4',r:'sf',lb:'Quart #4',d:'17/07/2026',t:'00:00',slot1:{type:'winner',mid:'Q7'},slot2:{type:'winner',mid:'Q8'}},{id:'SF1',r:'semi',lb:'Demi-finale 1',d:'17/07/2026',t:'21:00',slot1:{type:'winner',mid:'S1'},slot2:{type:'winner',mid:'S2'}},{id:'SF2',r:'semi',lb:'Demi-finale 2',d:'18/07/2026',t:'00:00',slot1:{type:'winner',mid:'S3'},slot2:{type:'winner',mid:'S4'}},{id:'TP',r:'fin',lb:'🥉 Petite Finale',d:'18/07/2026',t:'21:00',slot1:{type:'loser',mid:'SF1'},slot2:{type:'loser',mid:'SF2'}},{id:'FIN',r:'fin',lb:'🏆 FINALE',d:'19/07/2026',t:'21:00',slot1:{type:'winner',mid:'SF1'},slot2:{type:'winner',mid:'SF2'}}];
+
+const EMOJIS=['⚽','🏆','🎉','🔥','😂','🤣','😅','😤','💪','🥵','😍','🙏','👏','👎','😭','🤦','💯','🎯','🇫🇷','🤩','🍺','🤮','😱','🥶','💀','🎪','🤡','🫠','😬','🤌'];
+
+// ===== STATE (Firebase) =====
+let S={players:[],bets:{},results:{},chat:[],finalResults:{winner:'',scorer:''}};
+let curPlayer=null;
+let adminOn=false;
+
+function norm(s){return(s||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
+function flag(t){return t.split(' ')[0];}
+function tname(t){return t.split(' ').slice(1).join(' ');}
+function mDT(m){const[d,mo,y]=m.d.split('/');const[h,mi]=m.t.split(':');return new Date(+y,+mo-1,+d,+h,+mi);}
+function isLocked(m){return new Date()>=new Date(mDT(m)-60000);}
+function calcPts(bet,res){const bh=+bet.h,ba=+bet.a,rh=+res.h,ra=+res.a;if(isNaN(bh)||isNaN(ba)||isNaN(rh)||isNaN(ra))return 0;if(bh===rh&&ba===ra)return 3;const bR=bh>ba?'H':bh<ba?'A':'D',rR=rh>ra?'H':rh<ra?'A':'D';return bR===rR?1:0;}
+
+function getComment(pname,pos){
+  const arr=ALL_COMMENTS[pos]||["Courage !"];
+  const rc=Object.values(S.results).filter(r=>r&&r.h!==''&&r.h!==undefined).length;
+  const seed=(pname.length*31+rc*7+pos*13)%arr.length;
+  return arr[seed];
+}
+
+// ===== FIREBASE LISTENERS =====
+function startListeners(){
+  onValue(ref(db,'players'),snap=>{S.players=snap.val()||[];renderLoginExisting();renderAll();renderAdmPlayers();});
+  onValue(ref(db,'bets'),snap=>{S.bets=snap.val()||{};renderAll();});
+  onValue(ref(db,'results'),snap=>{S.results=snap.val()||{};renderAll();renderAdm();});
+  onValue(ref(db,'finalResults'),snap=>{S.finalResults=snap.val()||{winner:'',scorer:''};renderAll();});
+  onValue(ref(db,'chat'),snap=>{
+    const raw=snap.val()||{};
+    S.chat=Object.values(raw).sort((a,b)=>(a.ts||0)-(b.ts||0));
+    const chatActive=document.getElementById('tab-chat').classList.contains('act');
+    if(chatActive)renderChat();
+    else{
+      const cn=document.getElementById('cn');
+      const prev=parseInt(cn.textContent||0);
+      cn.textContent=prev+1;cn.classList.remove('hid');
+    }
+  });
+}
+
+// ===== FIREBASE WRITE =====
+async function fbSet(path,val){try{await set(ref(db,path),val);}catch(e){console.error(e);}}
+
+// ===== PROPAGATION =====
+function getStandings(g){
+  const teams=GROUPS[g].teams;const st={};
+  teams.forEach(t=>st[t]={p:0,w:0,d:0,l:0,gf:0,ga:0,pts:0});
+  GM.filter(m=>m.g===g).forEach(m=>{
+    const r=S.results[m.id];if(!r||r.h===''||r.h===undefined)return;
+    const h=+r.h,a=+r.a;if(isNaN(h)||isNaN(a))return;
+    st[m.h].p++;st[m.a].p++;st[m.h].gf+=h;st[m.h].ga+=a;st[m.a].gf+=a;st[m.a].ga+=h;
+    if(h>a){st[m.h].w++;st[m.h].pts+=3;st[m.a].l++;}
+    else if(h<a){st[m.a].w++;st[m.a].pts+=3;st[m.h].l++;}
+    else{st[m.h].d++;st[m.h].pts+=1;st[m.a].d++;st[m.a].pts+=1;}
+  });
+  return teams.map(t=>({name:t,...st[t],diff:st[t].gf-st[t].ga})).sort((a,b)=>b.pts-a.pts||b.diff-a.diff||b.gf-a.gf);
+}
+function getBest3rds(){
+  const thirds=[];
+  Object.keys(GROUPS).forEach(g=>{const st=getStandings(g);if(st.length>=3)thirds.push({...st[2],grp:g});});
+  thirds.sort((a,b)=>b.pts-a.pts||b.diff-a.diff||b.gf-a.gf);
+  return thirds.slice(0,9);
+}
+function resolveSlot(slot){
+  if(!slot)return null;
+  if(slot.type==='first'){const st=getStandings(slot.grp);return st.length>0?st[0].name:null;}
+  if(slot.type==='second'){const st=getStandings(slot.grp);return st.length>1?st[1].name:null;}
+  if(slot.type==='best3'){const b3=getBest3rds();return b3[slot.idx]?b3[slot.idx].name:null;}
+  if(slot.type==='winner'||slot.type==='loser'){
+    const r=S.results[slot.mid];if(!r||r.h===''||r.h===undefined)return null;
+    const rh=+r.h,ra=+r.a;if(isNaN(rh)||isNaN(ra))return null;
+    const km=KMT.find(k=>k.id===slot.mid);if(!km)return null;
+    const tH=resolveSlot(km.slot1),tA=resolveSlot(km.slot2);
+    if(slot.type==='winner')return rh>ra?tH:ra>rh?tA:null;
+    return rh>ra?tA:ra>rh?tH:null;
+  }
+  return null;
+}
+function getKOTeams(km){const h=resolveSlot(km.slot1),a=resolveSlot(km.slot2);return{h:h||'?',a:a||'?',rh:!!h,ra:!!a};}
+
+// ===== LOGIN =====
+function showLogin(){
+  document.getElementById('login-screen').style.display='block';
+  document.getElementById('main-header').style.display='none';
+  document.getElementById('main-content').style.display='none';
+  renderLoginExisting();
+}
+function renderLoginExisting(){
+  if(S.players.length>0){
+    document.getElementById('existing-block').style.display='block';
+    const list=document.getElementById('existing-list');list.innerHTML='';
+    S.players.forEach(p=>{
+      const btn=document.createElement('button');btn.className='player-btn';
+      btn.textContent='👤 '+p;btn.onclick=()=>loginAs(p);list.appendChild(btn);
+    });
+  }
+}
+function showApp(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('main-header').style.display='block';
+  document.getElementById('main-content').style.display='block';
+  document.getElementById('cur-lbl').textContent=curPlayer;
+}
+async function doLogin(){
+  const n=document.getElementById('login-name').value.trim();
+  const err=document.getElementById('login-err');
+  if(!n){err.style.display='block';err.textContent='Entre ton prénom !';return;}
+  if(n.length>20){err.style.display='block';err.textContent='Prénom trop long !';return;}
+  if(S.players.length>=15&&!S.players.includes(n)){err.style.display='block';err.textContent='Maximum 15 participants atteint !';return;}
+  err.style.display='none';
+  if(!S.players.includes(n)){
+    const newList=[...S.players,n];
+    await fbSet('players',newList);
+  }
+  curPlayer=n;
+  try{localStorage.setItem('cdm2026_player',n);}catch(e){}
+  showApp();renderAll();updateGBD();
+}
+function loginAs(name){
+  curPlayer=name;
+  try{localStorage.setItem('cdm2026_player',name);}catch(e){}
+  showApp();renderAll();updateGBD();
+}
+function doLogout(){
+  curPlayer=null;
+  try{localStorage.removeItem('cdm2026_player');}catch(e){}
+  showLogin();
+}
+window.doLogin=doLogin;window.doLogout=doLogout;window.loginAs=loginAs;
+
+// ===== SBAR =====
+function renderSbar(){
+  const pl=Object.values(S.results).filter(r=>r&&r.h!==''&&r.h!==undefined).length;
+  document.getElementById('sbar').innerHTML=`<div class="scard"><span class="sv">${S.players.length}/15</span><span class="sl">Participants</span></div><div class="scard"><span class="sv">${pl}/${GM.length+KMT.length}</span><span class="sl">Matchs joués</span></div><div class="scard"><span class="sv">11 Juin</span><span class="sl">Coup d'envoi</span></div><div class="scard"><span class="sv">19 Juil</span><span class="sl">Finale NY</span></div>`;
+}
+
+// ===== GLOBAL BETS =====
+function updateGBD(){
+  const lk=isLocked(GM[0]);const p=curPlayer;
+  const g=p&&S.bets[p]&&S.bets[p].global?S.bets[p].global:{};
+  document.getElementById('bw').value=g.w||'';document.getElementById('bs').value=g.s||'';
+  document.getElementById('bw').disabled=lk||!p;document.getElementById('bs').disabled=lk||!p;
+  document.getElementById('gbtn').disabled=lk||!p;
+}
+async function saveGB(){
+  const p=curPlayer;if(!p)return;
+  const w=document.getElementById('bw').value.trim(),s=document.getElementById('bs').value.trim();
+  const nb={...(S.bets[p]||{}),global:{w,s}};
+  await fbSet('bets/'+p,nb);
+  const ok=document.getElementById('gok');ok.style.display='block';setTimeout(()=>ok.style.display='none',2000);
+}
+window.saveGB=saveGB;
+
+// ===== SCORE =====
+function playerScore(p){
+  let total=0,nb=0,pf=0,gd=0,bd=0,bonusW=0,bonusS=0;
+  const pb=S.bets[p]||{};const g=pb.global||{};
+  [...GM,...KMT].forEach(m=>{
+    const bet=pb[m.id];const res=S.results[m.id];
+    if(bet&&bet.h!==''&&bet.a!==''){nb++;
+      if(res&&res.h!==undefined&&res.h!==''){const p3=calcPts(bet,res);total+=p3;if(p3===3)pf++;else if(p3===1)gd++;else bd++;}}
+  });
+  if(S.finalResults&&S.finalResults.winner&&g.w&&norm(g.w)===norm(S.finalResults.winner)){bonusW=6;total+=6;}
+  if(S.finalResults&&S.finalResults.scorer&&g.s&&norm(g.s)===norm(S.finalResults.scorer)){bonusS=3;total+=3;}
+  return{total,nb,pf,gd,bd,bonusW,bonusS};
+}
+
+// ===== GROUPS =====
+function renderGroups(){
+  const cont=document.getElementById('grpcont');cont.innerHTML='';
+  Object.keys(GROUPS).forEach(g=>{
+    const st=getStandings(g);const tl=GROUPS[g].teams.map(tname).join(' · ');
+    let stbl=`<table class="stbl"><thead><tr><th>Équipe</th><th>J</th><th>V</th><th>N</th><th>D</th><th>BP</th><th>BC</th><th>Diff</th><th>Pts</th></tr></thead><tbody>`;
+    st.forEach((t,i)=>{const cls=i===0?'q1':i===1?'q2':i===2?'q3':'el';stbl+=`<tr class="${cls}"><td><span class="tnm">${flag(t.name)} ${tname(t.name)}</span></td><td>${t.p}</td><td>${t.w}</td><td>${t.d}</td><td>${t.l}</td><td>${t.gf}</td><td>${t.ga}</td><td>${t.diff>0?'+'+t.diff:t.diff}</td><td class="pts">${t.pts}</td></tr>`;});
+    stbl+='</tbody></table>';
+    const mcs=GM.filter(m=>m.g===g).map(m=>mcHTML(m)).join('');
+    const sec=document.createElement('div');sec.className='gsec';
+    sec.innerHTML=`<div class="ghdr"><span>GROUPE ${g}</span><span class="gteams">${tl}</span></div>${stbl}<div class="mgrid">${mcs}</div>`;
+    cont.appendChild(sec);
+  });
+  attachL();
+}
+
+function mcHTML(m){
+  const lk=isLocked(m);const r=S.results[m.id];const pl=r&&r.h!==undefined&&r.h!=='';
+  const p=curPlayer;const bet=p&&S.bets[p]&&S.bets[p][m.id]?S.bets[p][m.id]:null;
+  const st=lk?(pl?'pl':'lk'):'up';const sl=st==='up'?'🔓 Ouvert':st==='lk'?'🔒 Fermé':'✅ Joué';
+  let badge='';
+  if(pl&&bet&&bet.h!==''){const p3=calcPts(bet,r);badge=p3===3?'<span class="rbadge pf">⭐ Exact +3pts</span>':p3===1?'<span class="rbadge gd">✅ Bon résultat +1pt</span>':'<span class="rbadge bd">❌ Raté</span>';}
+  else if(lk&&(!bet||bet.h===''))badge='<span class="rbadge pd">— Non parié</span>';
+  const dis=lk||!p?'disabled':'';
+  let allBets='';
+  if(lk&&S.players.length>0){
+    const rows=S.players.map(pl2=>{
+      const b=S.bets[pl2]&&S.bets[pl2][m.id]?S.bets[pl2][m.id]:null;
+      if(!b||b.h==='')return`<span style="color:var(--muted);font-size:.64rem">${pl2}: —</span>`;
+      let ico='';if(pl){const p3=calcPts(b,r);ico=p3===3?' ⭐':p3===1?' ✅':' ❌';}
+      return`<span style="font-size:.64rem;${pl2===p?'color:var(--gold);font-weight:700':''}">${pl2}: ${b.h}-${b.a}${ico}</span>`;
+    }).join('&nbsp; ');
+    allBets=`<div class="betsrow">${rows}</div>`;
+  }
+  return`<div class="mc"><div class="mmeta"><span>📅 ${m.d} ${m.t}</span><span class="mst ${st}">${sl}</span></div><div style="font-size:.62rem;color:var(--muted);text-align:center;margin-bottom:.32rem">📍 ${m.v}</div><div class="mteams"><div class="tside"><div class="tflag">${flag(m.h)}</div><div class="tlbl">${tname(m.h)}</div></div><div class="vsb">${pl?`<div class="rscore">${r.h} - ${r.a}</div>`:`<div class="sinps"><input class="sinp" type="text" inputmode="numeric" data-id="${m.id}" data-side="h" value="${bet?bet.h:''}" ${dis} placeholder="0"><span class="ssep">-</span><input class="sinp" type="text" inputmode="numeric" data-id="${m.id}" data-side="a" value="${bet?bet.a:''}" ${dis} placeholder="0"></div>`}<div class="vstxt">VS</div></div><div class="tside"><div class="tflag">${flag(m.a)}</div><div class="tlbl">${tname(m.a)}</div></div></div>${badge?`<div style="display:flex;justify-content:center;padding-top:.3rem">${badge}</div>`:''} ${!lk&&p?`<button class="savbtn" data-mid="${m.id}">💾 Sauvegarder</button>`:''} ${allBets}</div>`;
+}
+
+// ===== KO =====
+function renderKO(){
+  const cont=document.getElementById('kocont');cont.innerHTML='';
+  KMT.forEach(m=>{
+    const{h,a,rh,ra}=getKOTeams(m);const el=document.createElement('div');el.className='km';el.dataset.r=m.r;
+    const r=S.results[m.id];const pl=r&&r.h!==undefined&&r.h!=='';
+    const lk=isLocked(m);const p=curPlayer;const bet=p&&S.bets[p]&&S.bets[p][m.id]?S.bets[p][m.id]:null;
+    let badge='';if(pl&&bet&&bet.h!==''){const p3=calcPts(bet,r);badge=p3===3?'<span class="rbadge pf">⭐+3</span>':p3===1?'<span class="rbadge gd">✅+1</span>':'<span class="rbadge bd">❌0</span>';}
+    const dis=lk||!p?'disabled':'';
+    const auto=(!rh||!ra)?`<div class="ko-auto">⚡ Équipes calculées automatiquement</div>`:'';
+    let allBets='';
+    if(lk&&S.players.length>0){
+      const rows=S.players.map(pl2=>{
+        const b=S.bets[pl2]&&S.bets[pl2][m.id]?S.bets[pl2][m.id]:null;
+        if(!b||b.h==='')return`<span style="color:var(--muted);font-size:.64rem">${pl2}: —</span>`;
+        let ico='';if(pl){const p3=calcPts(b,r);ico=p3===3?' ⭐':p3===1?' ✅':' ❌';}
+        return`<span style="font-size:.64rem;${pl2===p?'color:var(--gold);font-weight:700':''}">${pl2}: ${b.h}-${b.a}${ico}</span>`;
+      }).join('&nbsp; ');
+      allBets=`<div class="betsrow">${rows}</div>`;
+    }
+    el.innerHTML=`<div class="kround">${m.lb}</div><div style="font-size:.62rem;color:var(--muted);margin-bottom:.28rem">📅 ${m.d} ${m.t}</div>${auto}<div class="mteams" style="margin-top:.28rem"><div class="tside"><div style="font-size:.73rem;font-weight:700;text-align:center;line-height:1.3">${h}</div></div><div class="vsb">${pl?`<div class="rscore">${r.h} - ${r.a}</div>`:`<div class="sinps"><input class="sinp" type="text" inputmode="numeric" data-id="${m.id}" data-side="h" value="${bet?bet.h:''}" ${dis} placeholder="0"><span class="ssep">-</span><input class="sinp" type="text" inputmode="numeric" data-id="${m.id}" data-side="a" value="${bet?bet.a:''}" ${dis} placeholder="0"></div>`}<div class="vstxt">VS</div></div><div class="tside"><div style="font-size:.73rem;font-weight:700;text-align:center;line-height:1.3">${a}</div></div></div>${badge?`<div style="display:flex;justify-content:center;padding-top:.25rem">${badge}</div>`:''} ${!lk&&p?`<button class="savbtn" data-mid="${m.id}">💾 Sauvegarder</button>`:''} ${allBets}`;
+    cont.appendChild(el);
+  });
+  attachKL();
+}
+window.fKO=function(r,btn){document.querySelectorAll('.fb').forEach(b=>b.classList.remove('act'));btn.classList.add('act');document.querySelectorAll('.km').forEach(el=>{el.style.display=(r==='all'||el.dataset.r===r)?'':'none';});};
+
+// ===== LISTENERS =====
+function attachL(){
+  document.querySelectorAll('#grpcont .sinp').forEach(inp=>{inp.addEventListener('input',function(){this.value=this.value.replace(/[^0-9]/g,'').slice(0,2);});});
+  document.querySelectorAll('#grpcont .savbtn[data-mid]').forEach(btn=>{
+    btn.addEventListener('click',async function(){
+      const mid=this.dataset.mid;const p=curPlayer;if(!p)return;
+      const hi=document.querySelector(`#grpcont .sinp[data-id="${mid}"][data-side="h"]`);
+      const ai=document.querySelector(`#grpcont .sinp[data-id="${mid}"][data-side="a"]`);
+      if(!hi||!ai)return;
+      const nb={...(S.bets[p]||{}),[mid]:{h:hi.value,a:ai.value}};
+      await fbSet('bets/'+p,nb);
+      this.textContent='✅ Sauvé !';setTimeout(()=>{if(this.isConnected)this.textContent='💾 Sauvegarder';},1500);
+    });
+  });
+}
+function attachKL(){
+  document.querySelectorAll('#kocont .sinp').forEach(inp=>{inp.addEventListener('input',function(){this.value=this.value.replace(/[^0-9]/g,'').slice(0,2);});});
+  document.querySelectorAll('#kocont .savbtn[data-mid]').forEach(btn=>{
+    btn.addEventListener('click',async function(){
+      const mid=this.dataset.mid;const p=curPlayer;if(!p)return;
+      const hi=document.querySelector(`#kocont .sinp[data-id="${mid}"][data-side="h"]`);
+      const ai=document.querySelector(`#kocont .sinp[data-id="${mid}"][data-side="a"]`);
+      if(!hi||!ai)return;
+      const nb={...(S.bets[p]||{}),[mid]:{h:hi.value,a:ai.value}};
+      await fbSet('bets/'+p,nb);
+      this.textContent='✅ Sauvé !';setTimeout(()=>{if(this.isConnected)this.textContent='💾 Sauvegarder';},1500);
+    });
+  });
+}
+
+// ===== RANKING =====
+function renderRanking(){
+  const cont=document.getElementById('rkgcont');
+  if(!S.players.length){cont.innerHTML='<p style="color:var(--muted);font-style:italic">Aucun participant pour l\'instant...</p>';return;}
+  const ranked=S.players.map(p=>({name:p,...playerScore(p)})).sort((a,b)=>b.total-a.total||b.pf-a.pf||b.gd-a.gd||b.nb-a.nb);
+  const fr=S.finalResults||{};
+  let html=`<table class="rtbl"><thead><tr><th style="text-align:center">#</th><th>Joueur</th><th style="text-align:center">Pts</th><th style="text-align:center" title="+6pts bonus vainqueur">🏆</th><th style="text-align:center" title="+3pts bonus buteur">⚽</th><th style="text-align:center">Pariés</th><th style="text-align:center">⭐</th><th style="text-align:center">✅</th><th style="text-align:center">❌</th><th>Paris spéciaux</th><th>Commentaire</th></tr></thead><tbody>`;
+  ranked.forEach((p,i)=>{
+    const pos=i+1;const rc=pos===1?'p1':pos===2?'p2':pos===3?'p3':'';const cmt=getComment(p.name,pos);
+    const isCur=p.name===curPlayer;const gb=(S.bets[p.name]&&S.bets[p.name].global)||{};
+    const wOk=fr.winner&&norm(gb.w)===norm(fr.winner);const sOk=fr.scorer&&norm(gb.s)===norm(fr.scorer);
+    const bonusHTML=`<div style="font-size:.72rem">${gb.w?`🏆 ${gb.w}${wOk?' <span style="color:var(--gold)">+6pts ✓</span>':''}`:'-'}</div><div style="font-size:.72rem">${gb.s?`⚽ ${gb.s}${sOk?' <span style="color:var(--gold)">+3pts ✓</span>':''}`:'-'}</div>`;
+    html+=`<tr><td class="rpos ${rc}">${pos}</td><td style="font-weight:700;${isCur?'color:var(--gold)':''}">${p.name}${isCur?' 👤':''}</td><td class="rpts">${p.total}</td><td style="text-align:center;font-weight:700;color:${p.bonusW?'var(--gold)':'var(--muted)'}">${p.bonusW?'+6':'-'}</td><td style="text-align:center;font-weight:700;color:${p.bonusS?'var(--gold)':'var(--muted)'}">${p.bonusS?'+3':'-'}</td><td style="text-align:center;color:var(--muted)">${p.nb}</td><td style="text-align:center;color:var(--gold)">${p.pf}</td><td style="text-align:center;color:var(--green)">${p.gd}</td><td style="text-align:center;color:#f87171">${p.bd}</td><td>${bonusHTML}</td><td class="rcmt">${cmt}</td></tr>`;
+  });
+  html+='</tbody></table>';cont.innerHTML=html;
+}
+
+// ===== SCORERS =====
+function renderScorers(){
+  const sc={};
+  Object.values(S.results).forEach(r=>{if(!r||!r.sc)return;r.sc.forEach(e=>{const[nm,ct]=(e||'').split('|');if(!nm)return;if(!sc[nm])sc[nm]={goals:0,ct:ct||''};sc[nm].goals++;});});
+  const sorted=Object.entries(sc).sort((a,b)=>b[1].goals-a[1].goals);
+  const cont=document.getElementById('scrcont');
+  if(!sorted.length){cont.innerHTML='<p style="color:var(--muted);font-style:italic">Les buteurs apparaîtront au fil des matchs...</p>';}
+  else{
+    let html=`<table class="scrtbl"><thead><tr><th>#</th><th>Joueur</th><th>Pays</th><th>Buts</th><th>Pariés par</th></tr></thead><tbody>`;
+    sorted.forEach(([nm,d],i)=>{const bts=S.players.filter(p=>S.bets[p]&&S.bets[p].global&&norm(S.bets[p].global.s)===norm(nm));html+=`<tr${bts.length?` style="background:rgba(255,215,0,.07)"`:''}><td class="scrank">${i+1}</td><td style="font-weight:700">${nm}</td><td style="color:var(--muted);font-size:.78rem">${d.ct}</td><td class="scgls">${d.goals} ⚽</td><td style="font-size:.73rem;color:var(--gold)">${bts.length?bts.join(', '):'—'}</td></tr>`;});
+    html+='</tbody></table>';cont.innerHTML=html;
+  }
+  const sp=document.getElementById('spreds');const fr=S.finalResults||{};
+  let ph='<strong style="color:var(--gold);font-family:\'Bebas Neue\';font-size:1.05rem;letter-spacing:1px;width:100%">PARIS SPÉCIAUX DE CHACUN</strong>';
+  if(fr.winner||fr.scorer)ph+=`<div style="width:100%;font-size:.75rem;color:var(--green);background:rgba(34,197,94,.08);border-radius:6px;padding:.35rem .6rem">✅ Résultats finaux — Vainqueur: <strong>${fr.winner||'?'}</strong> | Meilleur buteur: <strong>${fr.scorer||'?'}</strong></div>`;
+  S.players.forEach(p=>{
+    const g=S.bets[p]&&S.bets[p].global?S.bets[p].global:{};const isCur=p===curPlayer;
+    const wOk=fr.winner&&norm(g.w)===norm(fr.winner);const sOk=fr.scorer&&norm(g.s)===norm(fr.scorer);
+    ph+=`<div style="background:var(--dark2);border:1px solid ${isCur?'var(--gold)':'var(--card2)'};border-radius:8px;padding:.42rem .7rem;min-width:130px"><div style="font-weight:700;font-size:.8rem${isCur?';color:var(--gold)':''}">${p}${isCur?' 👤':''}</div><div style="font-size:.7rem;color:${wOk?'var(--gold)':'var(--muted)'}">🏆 ${g.w||'—'}${wOk?' +6pts ✓':''}</div><div style="font-size:.7rem;color:${sOk?'var(--gold)':'var(--muted)'}">⚽ ${g.s||'—'}${sOk?' +3pts ✓':''}</div></div>`;
+  });
+  sp.innerHTML=ph||'<span style="color:var(--muted);font-size:.82rem">Aucun participant</span>';
+}
+
+// ===== CHAT =====
+function renderChat(){
+  const cont=document.getElementById('chmsgs');
+  if(!S.chat.length){cont.innerHTML='<div style="text-align:center;color:var(--muted);font-style:italic;margin:auto;padding-top:2rem">Soyez les premiers à écrire !</div>';return;}
+  cont.innerHTML=S.chat.map(msg=>{
+    const own=msg.au===curPlayer;const init=(msg.au||'?').substring(0,2).toUpperCase();
+    return`<div class="chmsg${own?' own':''}"><div class="chav">${init}</div><div><div class="chbub"><div class="chsndr">${msg.au}</div>${msg.tx}</div><div class="chtm">${msg.tm}</div></div></div>`;
+  }).join('');
+  cont.scrollTop=cont.scrollHeight;
+}
+function renderEmbar(){document.getElementById('embar').innerHTML=EMOJIS.map(e=>`<button class="em" onclick="appendEm('${e}')">${e}</button>`).join('');}
+window.appendEm=function(e){const i=document.getElementById('chin');i.value+=e;i.focus();};
+async function sendMsg(){
+  const p=curPlayer;if(!p)return;
+  const inp=document.getElementById('chin');const tx=inp.value.trim();if(!tx)return;
+  const now=new Date();const tm=now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  inp.value='';
+  await push(ref(db,'chat'),{au:p,tx,tm,ts:Date.now()});
+}
+window.sendMsg=sendMsg;
+
+// ===== ADMIN =====
+window.checkAdm=function(){
+  if(document.getElementById('apwd').value==='cdm2026admin'){
+    adminOn=true;document.getElementById('alg').style.display='none';document.getElementById('apnl').style.display='block';
+    if(S.finalResults){document.getElementById('adm-winner').value=S.finalResults.winner||'';document.getElementById('adm-scorer').value=S.finalResults.scorer||'';}
+    renderAdm();
+  } else document.getElementById('aerr').style.display='block';
+};
+window.admSaveFinal=async function(){
+  const w=document.getElementById('adm-winner').value.trim();const s=document.getElementById('adm-scorer').value.trim();
+  await fbSet('finalResults',{winner:w,scorer:s});
+  const ok=document.getElementById('final-ok');ok.style.display='block';setTimeout(()=>ok.style.display='none',2000);
+};
+window.admSave=async function(mid){
+  const h=document.getElementById(`ah-${mid}`).value.trim();const a=document.getElementById(`aa-${mid}`).value.trim();
+  const sr=document.getElementById(`as-${mid}`).value.trim();const sc=sr?sr.split(',').map(s=>s.trim()).filter(Boolean):[];
+  await fbSet('results/'+mid,{h,a,sc,sr});
+};
+
+// ===== GESTION JOUEURS ADMIN =====
+window.admRenamePlayer=async function(oldName){
+  const inp=document.getElementById('rename-'+oldName);
+  const newName=inp.value.trim();
+  if(!newName||newName===oldName)return;
+  if(S.players.includes(newName)){alert('Ce nom existe déjà !');return;}
+  // Mise à jour liste joueurs
+  const newList=S.players.map(p=>p===oldName?newName:p);
+  await fbSet('players',newList);
+  // Migrer les paris
+  if(S.bets[oldName]){
+    await fbSet('bets/'+newName,S.bets[oldName]);
+    await fbSet('bets/'+oldName,null);
+  }
+  // Migrer le chat
+  const newChat=S.chat.map(m=>m.au===oldName?{...m,au:newName}:m);
+  // Reconstruire chat dans Firebase
+  const {get:fbGet}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js");
+  const chatSnap=await fbGet(ref(db,'chat'));
+  if(chatSnap.exists()){
+    const raw=chatSnap.val();
+    const updates={};
+    Object.entries(raw).forEach(([k,v])=>{if(v.au===oldName)updates['chat/'+k]={...v,au:newName};});
+    for(const[path,val]of Object.entries(updates))await fbSet(path,val);
+  }
+  // Si c'est le joueur connecté, mettre à jour
+  if(curPlayer===oldName){curPlayer=newName;try{localStorage.setItem('cdm2026_player',newName);}catch(e){}document.getElementById('cur-lbl').textContent=newName;}
+  inp.value='';
+  const btn=inp.nextElementSibling;if(btn){btn.textContent='✅ Renommé !';setTimeout(()=>btn.textContent='✏️ Renommer',1500);}
+};
+
+window.admDeletePlayer=async function(name){
+  if(!confirm(`Supprimer "${name}" et tous ses paris ? Cette action est irréversible.`))return;
+  const newList=S.players.filter(p=>p!==name);
+  await fbSet('players',newList);
+  await fbSet('bets/'+name,null);
+  if(curPlayer===name){curPlayer=null;try{localStorage.removeItem('cdm2026_player');}catch(e){}showLogin();}
+};
+
+function renderAdmPlayers(){
+  if(!adminOn)return;
+  const cont=document.getElementById('adm-players-list');if(!cont)return;
+  if(!S.players.length){cont.innerHTML='<p style="color:var(--muted);font-size:.82rem">Aucun participant inscrit.</p>';return;}
+  cont.innerHTML=S.players.map(p=>`
+    <div class="player-row">
+      <span style="font-weight:700;font-size:.85rem;min-width:80px;color:${p===curPlayer?'var(--gold)':'var(--text)'}">${p}${p===curPlayer?' 👤':''}</span>
+      <input type="text" id="rename-${p}" placeholder="Nouveau prénom..." maxlength="20">
+      <button class="btn sm" onclick="admRenamePlayer('${p}')">✏️ Renommer</button>
+      <button class="btn sm danger" onclick="admDeletePlayer('${p}')">🗑️ Supprimer</button>
+    </div>
+  `).join('');
+}
+
+function renderAdm(){
+  if(!adminOn)return;
+  renderAdmPlayers();
+  const cont=document.getElementById('admlst');cont.innerHTML='';
+  [...GM,...KMT].forEach(m=>{
+    const r=S.results[m.id]||{};const div=document.createElement('div');div.className='ami';
+    let lb=m.g?`[${m.g}] ${m.d} ${m.t} — ${tname(m.h)} vs ${tname(m.a)}`:`${m.lb} (${m.d} ${m.t})`;
+    if(!m.g){const{h,a}=getKOTeams(m);lb=`${m.lb} — ${h} vs ${a} (${m.d} ${m.t})`;}
+    const saved=r.h!==undefined&&r.h!=='';
+    div.innerHTML=`<div class="amlbl">${lb}</div><div class="amisc"><input class="aisc" type="text" id="ah-${m.id}" placeholder="0" value="${saved?r.h:''}" inputmode="numeric"><span style="font-family:'Bebas Neue';font-size:1.1rem;color:var(--muted)">-</span><input class="aisc" type="text" id="aa-${m.id}" placeholder="0" value="${saved?r.a:''}" inputmode="numeric"></div><input class="absc" type="text" id="as-${m.id}" placeholder="Buteurs: Mbappé|FRA, Vinicius|BRE" value="${r.sr||''}"><button class="btn sm" onclick="admSave('${m.id}')">✅ Valider</button>${saved?`<span style="color:var(--green);font-size:.7rem">✅ ${r.h}-${r.a}</span>`:''}`;
+    cont.appendChild(div);
+  });
+}
+
+// ===== TABS =====
+window.showTab=function(tab){
+  document.querySelectorAll('.tc').forEach(t=>t.classList.remove('act'));
+  document.querySelectorAll('.tb').forEach(b=>b.classList.remove('act'));
+  document.getElementById('tab-'+tab).classList.add('act');
+  document.querySelectorAll('.tb').forEach(b=>{if(b.getAttribute('onclick')===`showTab('${tab}')`)b.classList.add('act');});
+  if(tab==='chat'){const cn=document.getElementById('cn');cn.textContent='0';cn.classList.add('hid');renderChat();}
+  if(tab==='classement')renderRanking();
+  if(tab==='buteurs')renderScorers();
+  if(tab==='matchs'){renderGroups();renderKO();}
+};
+
+function renderAll(){renderSbar();renderGroups();renderKO();renderRanking();renderScorers();updateGBD();}
+
+// ===== BOOT =====
+startListeners();
+renderEmbar();
+// Récupérer joueur sauvegardé
+try{const saved=localStorage.getItem('cdm2026_player');if(saved)curPlayer=saved;}catch(e){}
+// Attendre les données Firebase avant d'afficher
+setTimeout(()=>{
+  document.getElementById('loading-full').style.display='none';
+  if(curPlayer&&S.players.includes(curPlayer)){showApp();renderAll();}
+  else{showLogin();}
+},1500);
+
+</script>
+</body>
+</html>
