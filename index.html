@@ -209,8 +209,8 @@ main{max-width:1400px;margin:0 auto;padding:1.2rem 1rem;position:relative;z-inde
     <div id="sbar" class="sbar"></div>
     <div class="gbets" id="gbets-block">
       <h3>🏆 Paris Spéciaux — à poser avant le 11 juin 21h00</h3>
-      <div class="bfield"><label>Vainqueur de la compétition <span class="bonus-badge">+6 pts bonus</span></label><input type="text" id="bw" placeholder="Ex: France"></div>
-      <div class="bfield"><label>Meilleur buteur <span class="bonus-badge">+3 pts bonus</span></label><input type="text" id="bs" placeholder="Ex: Mbappé"></div>
+      <div class="bfield"><label>Vainqueur de la compétition <span class="bonus-badge">+6 pts bonus</span> <span id="gb-winner-ind" style="display:none;background:rgba(34,197,94,.2);color:var(--green);border:1px solid var(--green);border-radius:10px;font-size:.63rem;font-weight:700;padding:.1rem .4rem;vertical-align:middle">✔ Sauvegardé</span></label><input type="text" id="bw" placeholder="Ex: France"></div>
+      <div class="bfield"><label>Meilleur buteur <span class="bonus-badge">+3 pts bonus</span> <span id="gb-scorer-ind" style="display:none;background:rgba(34,197,94,.2);color:var(--green);border:1px solid var(--green);border-radius:10px;font-size:.63rem;font-weight:700;padding:.1rem .4rem;vertical-align:middle">✔ Sauvegardé</span></label><input type="text" id="bs" placeholder="Ex: Mbappé"></div>
       <button class="btn" id="gbtn" onclick="saveGB()">💾 Sauvegarder</button>
       <span class="saved-ok" id="gok">✅ Sauvegardé !</span>
     </div>
@@ -498,9 +498,20 @@ function renderSbar(){
 function updateGBD(){
   const lk=isLocked(GM[0]);const p=curPlayer;
   const g=p&&S.bets[p]&&S.bets[p].global?S.bets[p].global:{};
-  document.getElementById('bw').value=g.w||'';document.getElementById('bs').value=g.s||'';
-  document.getElementById('bw').disabled=lk||!p;document.getElementById('bs').disabled=lk||!p;
+  const bw=document.getElementById('bw');
+  const bs=document.getElementById('bs');
+  bw.value=g.w||'';bs.value=g.s||'';
+  bw.disabled=lk||!p;bs.disabled=lk||!p;
   document.getElementById('gbtn').disabled=lk||!p;
+  // Pastilles vertes paris spéciaux
+  const wInd=document.getElementById('gb-winner-ind');
+  const sInd=document.getElementById('gb-scorer-ind');
+  if(wInd)wInd.style.display=(!lk&&g.w)?'inline-flex':'none';
+  if(sInd)sInd.style.display=(!lk&&g.s)?'inline-flex':'none';
+  if(lk){
+    const gb=document.getElementById('gbets-block');
+    if(gb){gb.style.borderColor='rgba(255,215,0,.3)';const h3=gb.querySelector('h3');if(h3&&!h3.textContent.includes('Fermés'))h3.textContent='🔒 Paris Spéciaux — Fermés (compétition démarrée)';}
+  }
 }
 async function saveGB(){
   const p=curPlayer;if(!p)return;
@@ -508,6 +519,7 @@ async function saveGB(){
   const nb={...(S.bets[p]||{}),global:{w,s}};
   await fbSet('bets/'+p,nb);
   const ok=document.getElementById('gok');ok.style.display='block';setTimeout(()=>ok.style.display='none',2000);
+  updateGBD();
 }
 window.saveGB=saveGB;
 
@@ -559,7 +571,9 @@ function mcHTML(m){
     }).join('&nbsp; ');
     allBets=`<div class="betsrow">${rows}</div>`;
   }
-  return`<div class="mc"><div class="mmeta"><span>📅 ${m.d} ${m.t}</span><span class="mst ${st}">${sl}</span></div><div style="font-size:.62rem;color:var(--muted);text-align:center;margin-bottom:.32rem">📍 ${m.v}</div><div class="mteams"><div class="tside"><div class="tflag">${flag(m.h)}</div><div class="tlbl">${tname(m.h)}</div></div><div class="vsb">${pl?`<div class="rscore">${r.h} - ${r.a}</div>`:`<div class="sinps"><input class="sinp" type="text" inputmode="numeric" data-id="${m.id}" data-side="h" value="${bet?bet.h:''}" ${dis} placeholder="0"><span class="ssep">-</span><input class="sinp" type="text" inputmode="numeric" data-id="${m.id}" data-side="a" value="${bet?bet.a:''}" ${dis} placeholder="0"></div>`}<div class="vstxt">VS</div></div><div class="tside"><div class="tflag">${flag(m.a)}</div><div class="tlbl">${tname(m.a)}</div></div></div>${badge?`<div style="display:flex;justify-content:center;padding-top:.3rem">${badge}</div>`:''} ${!lk&&p?`<button class="savbtn" data-mid="${m.id}">💾 Sauvegarder</button>`:''} ${allBets}</div>`;
+  // Pastille verte si pari sauvegardé avant le match
+  const betSaved=!lk&&bet&&bet.h!==''&&bet.a!=='';
+  return`<div class="mc"><div class="mmeta"><span>📅 ${m.d} ${m.t}</span><span class="mst ${st}">${sl}</span>${betSaved?`<span style="background:rgba(34,197,94,.2);color:var(--green);border:1px solid var(--green);border-radius:10px;font-size:.63rem;font-weight:700;padding:.1rem .4rem">✔ Parié</span>`:''}</div><div style="font-size:.62rem;color:var(--muted);text-align:center;margin-bottom:.32rem">📍 ${m.v}</div><div class="mteams"><div class="tside"><div class="tflag">${flag(m.h)}</div><div class="tlbl">${tname(m.h)}</div></div><div class="vsb">${pl?`<div class="rscore">${r.h} - ${r.a}</div>`:`<div class="sinps"><input class="sinp" type="text" inputmode="numeric" data-id="${m.id}" data-side="h" value="${bet?bet.h:''}" ${dis} placeholder="0"><span class="ssep">-</span><input class="sinp" type="text" inputmode="numeric" data-id="${m.id}" data-side="a" value="${bet?bet.a:''}" ${dis} placeholder="0"></div>`}<div class="vstxt">VS</div></div><div class="tside"><div class="tflag">${flag(m.a)}</div><div class="tlbl">${tname(m.a)}</div></div></div>${badge?`<div style="display:flex;justify-content:center;padding-top:.3rem">${badge}</div>`:''} ${!lk&&p?`<button class="savbtn" data-mid="${m.id}">💾 Sauvegarder</button>`:''} ${allBets}</div>`;
 }
 
 // ===== KO =====
@@ -582,7 +596,8 @@ function renderKO(){
       }).join('&nbsp; ');
       allBets=`<div class="betsrow">${rows}</div>`;
     }
-    el.innerHTML=`<div class="kround">${m.lb}</div><div style="font-size:.62rem;color:var(--muted);margin-bottom:.28rem">📅 ${m.d} ${m.t}</div>${auto}<div class="mteams" style="margin-top:.28rem"><div class="tside"><div style="font-size:.73rem;font-weight:700;text-align:center;line-height:1.3">${h}</div></div><div class="vsb">${pl?`<div class="rscore">${r.h} - ${r.a}</div>`:`<div class="sinps"><input class="sinp" type="text" inputmode="numeric" data-id="${m.id}" data-side="h" value="${bet?bet.h:''}" ${dis} placeholder="0"><span class="ssep">-</span><input class="sinp" type="text" inputmode="numeric" data-id="${m.id}" data-side="a" value="${bet?bet.a:''}" ${dis} placeholder="0"></div>`}<div class="vstxt">VS</div></div><div class="tside"><div style="font-size:.73rem;font-weight:700;text-align:center;line-height:1.3">${a}</div></div></div>${badge?`<div style="display:flex;justify-content:center;padding-top:.25rem">${badge}</div>`:''} ${!lk&&p?`<button class="savbtn" data-mid="${m.id}">💾 Sauvegarder</button>`:''} ${allBets}`;
+    const betSaved=!lk&&bet&&bet.h!==''&&bet.a!=='';
+    el.innerHTML=`<div class="kround">${m.lb}</div><div style="font-size:.62rem;color:var(--muted);margin-bottom:.28rem">📅 ${m.d} ${m.t} ${betSaved?`<span style="background:rgba(34,197,94,.2);color:var(--green);border:1px solid var(--green);border-radius:10px;font-size:.63rem;font-weight:700;padding:.1rem .4rem;margin-left:.3rem">✔ Parié</span>`:''}</div>${auto}<div class="mteams" style="margin-top:.28rem"><div class="tside"><div style="font-size:.73rem;font-weight:700;text-align:center;line-height:1.3">${h}</div></div><div class="vsb">${pl?`<div class="rscore">${r.h} - ${r.a}</div>`:`<div class="sinps"><input class="sinp" type="text" inputmode="numeric" data-id="${m.id}" data-side="h" value="${bet?bet.h:''}" ${dis} placeholder="0"><span class="ssep">-</span><input class="sinp" type="text" inputmode="numeric" data-id="${m.id}" data-side="a" value="${bet?bet.a:''}" ${dis} placeholder="0"></div>`}<div class="vstxt">VS</div></div><div class="tside"><div style="font-size:.73rem;font-weight:700;text-align:center;line-height:1.3">${a}</div></div></div>${badge?`<div style="display:flex;justify-content:center;padding-top:.25rem">${badge}</div>`:''} ${!lk&&p?`<button class="savbtn" data-mid="${m.id}">💾 Sauvegarder</button>`:''} ${allBets}`;
     cont.appendChild(el);
   });
   attachKL();
