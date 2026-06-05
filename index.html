@@ -523,6 +523,14 @@ async function saveGB(){
 }
 window.saveGB=saveGB;
 
+// Masquer pastilles si modification après sauvegarde
+document.getElementById('bw').addEventListener('input',()=>{
+  const ind=document.getElementById('gb-winner-ind');if(ind)ind.style.display='none';
+});
+document.getElementById('bs').addEventListener('input',()=>{
+  const ind=document.getElementById('gb-scorer-ind');if(ind)ind.style.display='none';
+});
+
 // ===== SCORE =====
 function playerScore(p){
   let total=0,nb=0,pf=0,gd=0,bd=0,bonusW=0,bonusS=0;
@@ -573,7 +581,7 @@ function mcHTML(m){
   }
   // Pastille verte si pari sauvegardé avant le match
   const betSaved=!lk&&bet&&bet.h!==''&&bet.a!=='';
-  return`<div class="mc"><div class="mmeta"><span>📅 ${m.d} ${m.t}</span><span class="mst ${st}">${sl}</span>${betSaved?`<span style="background:rgba(34,197,94,.2);color:var(--green);border:1px solid var(--green);border-radius:10px;font-size:.63rem;font-weight:700;padding:.1rem .4rem">✔ Parié</span>`:''}</div><div style="font-size:.62rem;color:var(--muted);text-align:center;margin-bottom:.32rem">📍 ${m.v}</div><div class="mteams"><div class="tside"><div class="tflag">${flag(m.h)}</div><div class="tlbl">${tname(m.h)}</div></div><div class="vsb">${pl?`<div class="rscore">${r.h} - ${r.a}</div>`:`<div class="sinps"><input class="sinp" type="text" inputmode="numeric" data-id="${m.id}" data-side="h" value="${bet?bet.h:''}" ${dis} placeholder="0"><span class="ssep">-</span><input class="sinp" type="text" inputmode="numeric" data-id="${m.id}" data-side="a" value="${bet?bet.a:''}" ${dis} placeholder="0"></div>`}<div class="vstxt">VS</div></div><div class="tside"><div class="tflag">${flag(m.a)}</div><div class="tlbl">${tname(m.a)}</div></div></div>${badge?`<div style="display:flex;justify-content:center;padding-top:.3rem">${badge}</div>`:''} ${!lk&&p?`<button class="savbtn" data-mid="${m.id}">💾 Sauvegarder</button>`:''} ${allBets}</div>`;
+  return`<div class="mc"><div class="mmeta"><span>📅 ${m.d} ${m.t}</span><span class="mst ${st}">${sl}</span><span id="betind-${m.id}" style="display:${betSaved?'inline-flex':'none'};background:rgba(34,197,94,.2);color:var(--green);border:1px solid var(--green);border-radius:10px;font-size:.63rem;font-weight:700;padding:.1rem .4rem;align-items:center;gap:.2rem">✔ Parié</span></div><div style="font-size:.62rem;color:var(--muted);text-align:center;margin-bottom:.32rem">📍 ${m.v}</div><div class="mteams"><div class="tside"><div class="tflag">${flag(m.h)}</div><div class="tlbl">${tname(m.h)}</div></div><div class="vsb">${pl?`<div class="rscore">${r.h} - ${r.a}</div>`:`<div class="sinps"><input class="sinp" type="text" inputmode="numeric" data-id="${m.id}" data-side="h" value="${bet?bet.h:''}" ${dis} placeholder="0"><span class="ssep">-</span><input class="sinp" type="text" inputmode="numeric" data-id="${m.id}" data-side="a" value="${bet?bet.a:''}" ${dis} placeholder="0"></div>`}<div class="vstxt">VS</div></div><div class="tside"><div class="tflag">${flag(m.a)}</div><div class="tlbl">${tname(m.a)}</div></div></div>${badge?`<div style="display:flex;justify-content:center;padding-top:.3rem">${badge}</div>`:''} ${!lk&&p?`<button class="savbtn" data-mid="${m.id}">💾 Sauvegarder</button>`:''} ${allBets}</div>`;
 }
 
 // ===== KO =====
@@ -597,7 +605,7 @@ function renderKO(){
       allBets=`<div class="betsrow">${rows}</div>`;
     }
     const betSaved=!lk&&bet&&bet.h!==''&&bet.a!=='';
-    el.innerHTML=`<div class="kround">${m.lb}</div><div style="font-size:.62rem;color:var(--muted);margin-bottom:.28rem">📅 ${m.d} ${m.t} ${betSaved?`<span style="background:rgba(34,197,94,.2);color:var(--green);border:1px solid var(--green);border-radius:10px;font-size:.63rem;font-weight:700;padding:.1rem .4rem;margin-left:.3rem">✔ Parié</span>`:''}</div>${auto}<div class="mteams" style="margin-top:.28rem"><div class="tside"><div style="font-size:.73rem;font-weight:700;text-align:center;line-height:1.3">${h}</div></div><div class="vsb">${pl?`<div class="rscore">${r.h} - ${r.a}</div>`:`<div class="sinps"><input class="sinp" type="text" inputmode="numeric" data-id="${m.id}" data-side="h" value="${bet?bet.h:''}" ${dis} placeholder="0"><span class="ssep">-</span><input class="sinp" type="text" inputmode="numeric" data-id="${m.id}" data-side="a" value="${bet?bet.a:''}" ${dis} placeholder="0"></div>`}<div class="vstxt">VS</div></div><div class="tside"><div style="font-size:.73rem;font-weight:700;text-align:center;line-height:1.3">${a}</div></div></div>${badge?`<div style="display:flex;justify-content:center;padding-top:.25rem">${badge}</div>`:''} ${!lk&&p?`<button class="savbtn" data-mid="${m.id}">💾 Sauvegarder</button>`:''} ${allBets}`;
+    el.innerHTML=`<div class="kround">${m.lb}</div><div style="font-size:.62rem;color:var(--muted);margin-bottom:.28rem;display:flex;align-items:center;gap:.4rem">📅 ${m.d} ${m.t} <span id="betind-${m.id}" style="display:${betSaved?'inline-flex':'none'};background:rgba(34,197,94,.2);color:var(--green);border:1px solid var(--green);border-radius:10px;font-size:.63rem;font-weight:700;padding:.1rem .4rem">✔ Parié</span></div>${auto}<div class="mteams" style="margin-top:.28rem"><div class="tside"><div style="font-size:.73rem;font-weight:700;text-align:center;line-height:1.3">${h}</div></div><div class="vsb">${pl?`<div class="rscore">${r.h} - ${r.a}</div>`:`<div class="sinps"><input class="sinp" type="text" inputmode="numeric" data-id="${m.id}" data-side="h" value="${bet?bet.h:''}" ${dis} placeholder="0"><span class="ssep">-</span><input class="sinp" type="text" inputmode="numeric" data-id="${m.id}" data-side="a" value="${bet?bet.a:''}" ${dis} placeholder="0"></div>`}<div class="vstxt">VS</div></div><div class="tside"><div style="font-size:.73rem;font-weight:700;text-align:center;line-height:1.3">${a}</div></div></div>${badge?`<div style="display:flex;justify-content:center;padding-top:.25rem">${badge}</div>`:''} ${!lk&&p?`<button class="savbtn" data-mid="${m.id}">💾 Sauvegarder</button>`:''} ${allBets}`;
     cont.appendChild(el);
   });
   attachKL();
@@ -606,30 +614,54 @@ window.fKO=function(r,btn){document.querySelectorAll('.fb').forEach(b=>b.classLi
 
 // ===== LISTENERS =====
 function attachL(){
-  document.querySelectorAll('#grpcont .sinp').forEach(inp=>{inp.addEventListener('input',function(){this.value=this.value.replace(/[^0-9]/g,'').slice(0,2);});});
+  document.querySelectorAll('#grpcont .sinp').forEach(inp=>{
+    inp.addEventListener('input',function(){
+      this.value=this.value.replace(/[^0-9]/g,'').slice(0,2);
+      // Quand le joueur modifie un champ, on retire la pastille verte
+      const mid=this.dataset.id;
+      const ind=document.getElementById('betind-'+mid);
+      if(ind)ind.style.display='none';
+    });
+  });
   document.querySelectorAll('#grpcont .savbtn[data-mid]').forEach(btn=>{
     btn.addEventListener('click',async function(){
       const mid=this.dataset.mid;const p=curPlayer;if(!p)return;
       const hi=document.querySelector(`#grpcont .sinp[data-id="${mid}"][data-side="h"]`);
       const ai=document.querySelector(`#grpcont .sinp[data-id="${mid}"][data-side="a"]`);
       if(!hi||!ai)return;
-      const nb={...(S.bets[p]||{}),[mid]:{h:hi.value,a:ai.value}};
+      const h=hi.value,a=ai.value;
+      const nb={...(S.bets[p]||{}),[mid]:{h,a}};
       await fbSet('bets/'+p,nb);
-      this.textContent='✅ Sauvé !';setTimeout(()=>{if(this.isConnected)this.textContent='💾 Sauvegarder';},1500);
+      this.textContent='✅ Sauvé !';
+      setTimeout(()=>{if(this.isConnected)this.textContent='💾 Sauvegarder';},1500);
+      // Pastille verte si les deux champs sont remplis, retirer si vides
+      const ind=document.getElementById('betind-'+mid);
+      if(ind)ind.style.display=(h!==''&&a!=='')?'inline-flex':'none';
     });
   });
 }
 function attachKL(){
-  document.querySelectorAll('#kocont .sinp').forEach(inp=>{inp.addEventListener('input',function(){this.value=this.value.replace(/[^0-9]/g,'').slice(0,2);});});
+  document.querySelectorAll('#kocont .sinp').forEach(inp=>{
+    inp.addEventListener('input',function(){
+      this.value=this.value.replace(/[^0-9]/g,'').slice(0,2);
+      const mid=this.dataset.id;
+      const ind=document.getElementById('betind-'+mid);
+      if(ind)ind.style.display='none';
+    });
+  });
   document.querySelectorAll('#kocont .savbtn[data-mid]').forEach(btn=>{
     btn.addEventListener('click',async function(){
       const mid=this.dataset.mid;const p=curPlayer;if(!p)return;
       const hi=document.querySelector(`#kocont .sinp[data-id="${mid}"][data-side="h"]`);
       const ai=document.querySelector(`#kocont .sinp[data-id="${mid}"][data-side="a"]`);
       if(!hi||!ai)return;
-      const nb={...(S.bets[p]||{}),[mid]:{h:hi.value,a:ai.value}};
+      const h=hi.value,a=ai.value;
+      const nb={...(S.bets[p]||{}),[mid]:{h,a}};
       await fbSet('bets/'+p,nb);
-      this.textContent='✅ Sauvé !';setTimeout(()=>{if(this.isConnected)this.textContent='💾 Sauvegarder';},1500);
+      this.textContent='✅ Sauvé !';
+      setTimeout(()=>{if(this.isConnected)this.textContent='💾 Sauvegarder';},1500);
+      const ind=document.getElementById('betind-'+mid);
+      if(ind)ind.style.display=(h!==''&&a!=='')?'inline-flex':'none';
     });
   });
 }
