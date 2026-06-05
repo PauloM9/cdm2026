@@ -91,6 +91,8 @@ main{max-width:1400px;margin:0 auto;padding:1.2rem 1rem;position:relative;z-inde
 .savbtn{margin-top:.4rem;width:100%;padding:.26rem;background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.25);color:var(--gold);border-radius:6px;font-size:.7rem;font-weight:700;cursor:pointer;font-family:'Nunito';transition:background .2s}
 .savbtn:hover{background:rgba(255,215,0,.2)}
 .betsrow{margin-top:.4rem;padding:.32rem .4rem;background:rgba(255,255,255,.03);border-radius:6px;display:flex;flex-wrap:wrap;gap:.25rem}
+details>summary::-webkit-details-marker{display:none}
+details[open]>summary{border-radius:6px 6px 0 0;margin-bottom:0}
 .kosec{margin-top:1.4rem}
 .kgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(265px,1fr));gap:.65rem}
 .km{background:var(--card);border:1px solid rgba(255,215,0,.18);border-radius:10px;padding:.72rem}
@@ -565,23 +567,95 @@ function mcHTML(m){
   const lk=isLocked(m);const r=S.results[m.id];const pl=r&&r.h!==undefined&&r.h!=='';
   const p=curPlayer;const bet=p&&S.bets[p]&&S.bets[p][m.id]?S.bets[p][m.id]:null;
   const st=lk?(pl?'pl':'lk'):'up';const sl=st==='up'?'🔓 Ouvert':st==='lk'?'🔒 Fermé':'✅ Joué';
-  let badge='';
-  if(pl&&bet&&bet.h!==''){const p3=calcPts(bet,r);badge=p3===3?'<span class="rbadge pf">⭐ Exact +3pts</span>':p3===1?'<span class="rbadge gd">✅ Bon résultat +1pt</span>':'<span class="rbadge bd">❌ Raté</span>';}
-  else if(lk&&(!bet||bet.h===''))badge='<span class="rbadge pd">— Non parié</span>';
   const dis=lk||!p?'disabled':'';
+
+  // ---- MATCH JOUÉ : affichage enrichi ----
+  if(pl){
+    // Mon pari
+    let myBetHTML='';
+    let badge='';
+    if(bet&&bet.h!==''){
+      const p3=calcPts(bet,r);
+      const badgeEl=p3===3?'<span class="rbadge pf">⭐ Score exact +3pts</span>':p3===1?'<span class="rbadge gd">✅ Bon résultat +1pt</span>':'<span class="rbadge bd">❌ Mauvais résultat 0pt</span>';
+      myBetHTML=`<div style="display:flex;align-items:center;justify-content:center;gap:.5rem;margin:.4rem 0;padding:.35rem .5rem;background:rgba(255,255,255,.04);border-radius:8px;flex-wrap:wrap">
+        <span style="font-size:.72rem;color:var(--muted)">Mon pari :</span>
+        <span style="font-family:'Bebas Neue';font-size:1.15rem;color:${p3===3?'var(--gold)':p3===1?'var(--green)':'#f87171'}">${bet.h} - ${bet.a}</span>
+        ${badgeEl}
+      </div>`;
+    } else {
+      myBetHTML=`<div style="text-align:center;font-size:.72rem;color:var(--muted);margin:.3rem 0;font-style:italic">— Tu n'avais pas parié ce match</div>`;
+    }
+
+    // Tableau comparatif de tous les paris
+    const playersWithBet=S.players.filter(pl2=>S.bets[pl2]&&S.bets[pl2][m.id]&&S.bets[pl2][m.id].h!=='');
+    const playersNoBet=S.players.filter(pl2=>!S.bets[pl2]||!S.bets[pl2][m.id]||S.bets[pl2][m.id].h==='');
+    let compTable='';
+    if(S.players.length>0){
+      const rows=playersWithBet.map(pl2=>{
+        const b=S.bets[pl2][m.id];
+        const p3=calcPts(b,r);
+        const isCur=pl2===p;
+        const ptsBg=p3===3?'rgba(255,215,0,.15)':p3===1?'rgba(34,197,94,.1)':'rgba(239,68,68,.08)';
+        const ptsColor=p3===3?'var(--gold)':p3===1?'var(--green)':'#f87171';
+        const ico=p3===3?'⭐':p3===1?'✅':'❌';
+        const fun=p3===3?'🎯 Score parfait !':p3===1?'👍 Bon résultat':'😬 Raté !';
+        return`<tr style="background:${ptsBg}${isCur?';outline:1px solid var(--gold)':''}">
+          <td style="padding:.3rem .5rem;font-weight:${isCur?'900':'600'};font-size:.8rem;color:${isCur?'var(--gold)':'var(--text)'}">${pl2}${isCur?' 👤':''}</td>
+          <td style="padding:.3rem .5rem;text-align:center;font-family:'Bebas Neue';font-size:1.05rem;color:${ptsColor}">${b.h} - ${b.a}</td>
+          <td style="padding:.3rem .5rem;text-align:center;font-size:.75rem">${ico} ${fun}</td>
+          <td style="padding:.3rem .5rem;text-align:center;font-weight:900;color:${ptsColor};font-size:.9rem">+${p3}pt${p3>1?'s':''}</td>
+        </tr>`;
+      }).join('');
+      const noRows=playersNoBet.map(pl2=>`<tr>
+        <td style="padding:.3rem .5rem;font-size:.78rem;color:var(--muted)">${pl2}</td>
+        <td style="padding:.3rem .5rem;text-align:center;font-size:.72rem;color:var(--muted)">—</td>
+        <td style="padding:.3rem .5rem;font-size:.72rem;color:var(--muted)">😴 Non parié</td>
+        <td style="padding:.3rem .5rem;text-align:center;color:var(--muted);font-size:.8rem">0pt</td>
+      </tr>`).join('');
+      compTable=`<details style="margin-top:.4rem">
+        <summary style="font-size:.75rem;color:var(--gold);cursor:pointer;font-weight:700;padding:.3rem .4rem;background:rgba(255,215,0,.06);border-radius:6px;list-style:none;display:flex;align-items:center;gap:.4rem">
+          👥 Voir les paris de tous (${playersWithBet.length}/${S.players.length} ont parié)
+        </summary>
+        <table style="width:100%;border-collapse:collapse;margin-top:.4rem;font-size:.78rem">
+          <thead><tr style="background:var(--dark2)">
+            <th style="padding:.3rem .5rem;text-align:left;font-size:.68rem;color:var(--muted)">Joueur</th>
+            <th style="padding:.3rem .5rem;text-align:center;font-size:.68rem;color:var(--muted)">Pari</th>
+            <th style="padding:.3rem .5rem;font-size:.68rem;color:var(--muted)">Résultat</th>
+            <th style="padding:.3rem .5rem;text-align:center;font-size:.68rem;color:var(--muted)">Pts</th>
+          </tr></thead>
+          <tbody>${rows}${noRows}</tbody>
+        </table>
+      </details>`;
+    }
+
+    return`<div class="mc" style="border-color:rgba(34,197,94,.2)">
+      <div class="mmeta"><span>📅 ${m.d} ${m.t}</span><span class="mst pl">✅ Joué</span></div>
+      <div style="font-size:.62rem;color:var(--muted);text-align:center;margin-bottom:.4rem">📍 ${m.v}</div>
+      <div class="mteams">
+        <div class="tside"><div class="tflag">${flag(m.h)}</div><div class="tlbl">${tname(m.h)}</div></div>
+        <div class="vsb"><div class="rscore">${r.h} - ${r.a}</div><div class="vstxt">RÉSULTAT</div></div>
+        <div class="tside"><div class="tflag">${flag(m.a)}</div><div class="tlbl">${tname(m.a)}</div></div>
+      </div>
+      ${myBetHTML}
+      ${compTable}
+    </div>`;
+  }
+
+  // ---- MATCH NON JOUÉ ----
+  let badge='';
+  if(lk&&(!bet||bet.h===''))badge='<span class="rbadge pd">— Non parié</span>';
   let allBets='';
   if(lk&&S.players.length>0){
     const rows=S.players.map(pl2=>{
       const b=S.bets[pl2]&&S.bets[pl2][m.id]?S.bets[pl2][m.id]:null;
       if(!b||b.h==='')return`<span style="color:var(--muted);font-size:.64rem">${pl2}: —</span>`;
-      let ico='';if(pl){const p3=calcPts(b,r);ico=p3===3?' ⭐':p3===1?' ✅':' ❌';}
-      return`<span style="font-size:.64rem;${pl2===p?'color:var(--gold);font-weight:700':''}">${pl2}: ${b.h}-${b.a}${ico}</span>`;
+      return`<span style="font-size:.64rem;${pl2===p?'color:var(--gold);font-weight:700':''}">${pl2}: ${b.h}-${b.a}</span>`;
     }).join('&nbsp; ');
     allBets=`<div class="betsrow">${rows}</div>`;
   }
-  // Pastille verte si pari sauvegardé avant le match
   const betSaved=!lk&&bet&&bet.h!==''&&bet.a!=='';
-  return`<div class="mc"><div class="mmeta"><span>📅 ${m.d} ${m.t}</span><span class="mst ${st}">${sl}</span><span id="betind-${m.id}" style="display:${betSaved?'inline-flex':'none'};background:rgba(34,197,94,.2);color:var(--green);border:1px solid var(--green);border-radius:10px;font-size:.63rem;font-weight:700;padding:.1rem .4rem;align-items:center;gap:.2rem">✔ Parié</span></div><div style="font-size:.62rem;color:var(--muted);text-align:center;margin-bottom:.32rem">📍 ${m.v}</div><div class="mteams"><div class="tside"><div class="tflag">${flag(m.h)}</div><div class="tlbl">${tname(m.h)}</div></div><div class="vsb">${pl?`<div class="rscore">${r.h} - ${r.a}</div>`:`<div class="sinps"><input class="sinp" type="text" inputmode="numeric" data-id="${m.id}" data-side="h" value="${bet?bet.h:''}" ${dis} placeholder="0"><span class="ssep">-</span><input class="sinp" type="text" inputmode="numeric" data-id="${m.id}" data-side="a" value="${bet?bet.a:''}" ${dis} placeholder="0"></div>`}<div class="vstxt">VS</div></div><div class="tside"><div class="tflag">${flag(m.a)}</div><div class="tlbl">${tname(m.a)}</div></div></div>${badge?`<div style="display:flex;justify-content:center;padding-top:.3rem">${badge}</div>`:''} ${!lk&&p?`<button class="savbtn" data-mid="${m.id}">💾 Sauvegarder</button>`:''} ${allBets}</div>`;
+  return`<div class="mc"><div class="mmeta"><span>📅 ${m.d} ${m.t}</span><span class="mst ${st}">${sl}</span><span id="betind-${m.id}" style="display:${betSaved?'inline-flex':'none'};background:rgba(34,197,94,.2);color:var(--green);border:1px solid var(--green);border-radius:10px;font-size:.63rem;font-weight:700;padding:.1rem .4rem;align-items:center;gap:.2rem">✔ Parié</span></div><div style="font-size:.62rem;color:var(--muted);text-align:center;margin-bottom:.32rem">📍 ${m.v}</div><div class="mteams"><div class="tside"><div class="tflag">${flag(m.h)}</div><div class="tlbl">${tname(m.h)}</div></div><div class="vsb"><div class="sinps"><input class="sinp" type="text" inputmode="numeric" data-id="${m.id}" data-side="h" value="${bet?bet.h:''}" ${dis} placeholder="0"><span class="ssep">-</span><input class="sinp" type="text" inputmode="numeric" data-id="${m.id}" data-side="a" value="${bet?bet.a:''}" ${dis} placeholder="0"></div><div class="vstxt">VS</div></div><div class="tside"><div class="tflag">${flag(m.a)}</div><div class="tlbl">${tname(m.a)}</div></div></div>${badge?`<div style="display:flex;justify-content:center;padding-top:.3rem">${badge}</div>`:''} ${!lk&&p?`<button class="savbtn" data-mid="${m.id}">💾 Sauvegarder</button>`:''} ${allBets}</div>`;
+}
 }
 
 // ===== KO =====
@@ -605,6 +679,44 @@ function renderKO(){
       allBets=`<div class="betsrow">${rows}</div>`;
     }
     const betSaved=!lk&&bet&&bet.h!==''&&bet.a!=='';
+
+    // ---- KO JOUÉ : affichage enrichi ----
+    if(pl){
+      let myBetHTML='';
+      if(bet&&bet.h!==''){
+        const p3=calcPts(bet,r);
+        const ptsColor=p3===3?'var(--gold)':p3===1?'var(--green)':'#f87171';
+        const badgeEl=p3===3?'<span class="rbadge pf">⭐ Exact +3pts</span>':p3===1?'<span class="rbadge gd">✅ Bon résultat +1pt</span>':'<span class="rbadge bd">❌ Mauvais résultat 0pt</span>';
+        myBetHTML=`<div style="display:flex;align-items:center;justify-content:center;gap:.5rem;margin:.35rem 0;padding:.3rem .5rem;background:rgba(255,255,255,.04);border-radius:8px;flex-wrap:wrap">
+          <span style="font-size:.7rem;color:var(--muted)">Mon pari :</span>
+          <span style="font-family:'Bebas Neue';font-size:1.1rem;color:${ptsColor}">${bet.h} - ${bet.a}</span>
+          ${badgeEl}
+        </div>`;
+      } else {
+        myBetHTML=`<div style="text-align:center;font-size:.7rem;color:var(--muted);margin:.25rem 0;font-style:italic">— Tu n'avais pas parié ce match</div>`;
+      }
+      const playersWithBet=S.players.filter(pl2=>S.bets[pl2]&&S.bets[pl2][m.id]&&S.bets[pl2][m.id].h!=='');
+      const playersNoBet=S.players.filter(pl2=>!S.bets[pl2]||!S.bets[pl2][m.id]||S.bets[pl2][m.id].h==='');
+      const rows=playersWithBet.map(pl2=>{
+        const b=S.bets[pl2][m.id];const p3=calcPts(b,r);const isCur=pl2===p;
+        const ptsBg=p3===3?'rgba(255,215,0,.15)':p3===1?'rgba(34,197,94,.1)':'rgba(239,68,68,.08)';
+        const ptsColor=p3===3?'var(--gold)':p3===1?'var(--green)':'#f87171';
+        const ico=p3===3?'⭐':p3===1?'✅':'❌';
+        const fun=p3===3?'🎯 Parfait !':p3===1?'👍 Bon':'😬 Raté !';
+        return`<tr style="background:${ptsBg}${isCur?';outline:1px solid var(--gold)':''}"><td style="padding:.28rem .45rem;font-weight:${isCur?'900':'600'};font-size:.78rem;color:${isCur?'var(--gold)':'var(--text)'}">${pl2}${isCur?' 👤':''}</td><td style="padding:.28rem .45rem;text-align:center;font-family:'Bebas Neue';font-size:1rem;color:${ptsColor}">${b.h}-${b.a}</td><td style="padding:.28rem .45rem;font-size:.72rem">${ico} ${fun}</td><td style="padding:.28rem .45rem;text-align:center;font-weight:900;color:${ptsColor};font-size:.85rem">+${p3}pt${p3>1?'s':''}</td></tr>`;
+      }).join('')+playersNoBet.map(pl2=>`<tr><td style="padding:.28rem .45rem;font-size:.75rem;color:var(--muted)">${pl2}</td><td style="padding:.28rem .45rem;text-align:center;color:var(--muted);font-size:.7rem">—</td><td style="padding:.28rem .45rem;font-size:.7rem;color:var(--muted)">😴 Non parié</td><td style="padding:.28rem .45rem;text-align:center;color:var(--muted);font-size:.78rem">0pt</td></tr>`).join('');
+      const compTable=S.players.length?`<details style="margin-top:.35rem"><summary style="font-size:.72rem;color:var(--gold);cursor:pointer;font-weight:700;padding:.28rem .4rem;background:rgba(255,215,0,.06);border-radius:6px;list-style:none">👥 Paris de tous (${playersWithBet.length}/${S.players.length})</summary><table style="width:100%;border-collapse:collapse;margin-top:.35rem"><thead><tr style="background:var(--dark2)"><th style="padding:.28rem .45rem;text-align:left;font-size:.65rem;color:var(--muted)">Joueur</th><th style="padding:.28rem .45rem;text-align:center;font-size:.65rem;color:var(--muted)">Pari</th><th style="padding:.28rem .45rem;font-size:.65rem;color:var(--muted)">Résultat</th><th style="padding:.28rem .45rem;text-align:center;font-size:.65rem;color:var(--muted)">Pts</th></tr></thead><tbody>${rows}</tbody></table></details>`:'';
+      el.innerHTML=`<div class="kround">${m.lb}</div>
+        <div style="font-size:.62rem;color:var(--muted);margin-bottom:.28rem">📅 ${m.d} ${m.t}</div>
+        <div class="mteams" style="margin-top:.28rem">
+          <div class="tside"><div style="font-size:.73rem;font-weight:700;text-align:center;line-height:1.3">${h}</div></div>
+          <div class="vsb"><div class="rscore">${r.h} - ${r.a}</div><div class="vstxt">RÉSULTAT</div></div>
+          <div class="tside"><div style="font-size:.73rem;font-weight:700;text-align:center;line-height:1.3">${a}</div></div>
+        </div>
+        ${myBetHTML}${compTable}`;
+      cont.appendChild(el);return;
+    }
+
     el.innerHTML=`<div class="kround">${m.lb}</div><div style="font-size:.62rem;color:var(--muted);margin-bottom:.28rem;display:flex;align-items:center;gap:.4rem">📅 ${m.d} ${m.t} <span id="betind-${m.id}" style="display:${betSaved?'inline-flex':'none'};background:rgba(34,197,94,.2);color:var(--green);border:1px solid var(--green);border-radius:10px;font-size:.63rem;font-weight:700;padding:.1rem .4rem">✔ Parié</span></div>${auto}<div class="mteams" style="margin-top:.28rem"><div class="tside"><div style="font-size:.73rem;font-weight:700;text-align:center;line-height:1.3">${h}</div></div><div class="vsb">${pl?`<div class="rscore">${r.h} - ${r.a}</div>`:`<div class="sinps"><input class="sinp" type="text" inputmode="numeric" data-id="${m.id}" data-side="h" value="${bet?bet.h:''}" ${dis} placeholder="0"><span class="ssep">-</span><input class="sinp" type="text" inputmode="numeric" data-id="${m.id}" data-side="a" value="${bet?bet.a:''}" ${dis} placeholder="0"></div>`}<div class="vstxt">VS</div></div><div class="tside"><div style="font-size:.73rem;font-weight:700;text-align:center;line-height:1.3">${a}</div></div></div>${badge?`<div style="display:flex;justify-content:center;padding-top:.25rem">${badge}</div>`:''} ${!lk&&p?`<button class="savbtn" data-mid="${m.id}">💾 Sauvegarder</button>`:''} ${allBets}`;
     cont.appendChild(el);
   });
