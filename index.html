@@ -179,13 +179,32 @@ details[open]>summary{border-radius:6px 6px 0 0;margin-bottom:0}
 <div id="login-screen" class="login-screen" style="display:none">
   <div style="font-size:3rem;margin-bottom:.5rem">⚽</div>
   <h2>CDM <span style="color:var(--red)">2026</span></h2>
-  <p>Identifie-toi pour accéder aux pronostics</p>
-  <input type="text" id="login-name" placeholder="Entre ton prénom..." maxlength="20" onkeydown="if(event.key==='Enter')doLogin()">
-  <button class="btn" style="width:100%;padding:.55rem" onclick="doLogin()">🚀 Rejoindre / Se connecter</button>
-  <p id="login-err" style="color:#f87171;font-size:.8rem;margin-top:.5rem;display:none"></p>
-  <div class="existing" id="existing-block" style="display:none">
-    <p style="font-size:.78rem;color:var(--muted);margin-bottom:.6rem">Ou clique sur ton nom :</p>
-    <div id="existing-list"></div>
+  <p id="login-subtitle">Identifie-toi pour accéder aux pronostics</p>
+
+  <!-- Étape 1 : choisir son nom -->
+  <div id="login-step1">
+    <input type="text" id="login-name" placeholder="Entre ton prénom..." maxlength="20" onkeydown="if(event.key==='Enter')loginStep1()">
+    <button class="btn" style="width:100%;padding:.55rem" onclick="loginStep1()">Continuer →</button>
+    <p id="login-err" style="color:#f87171;font-size:.8rem;margin-top:.5rem;display:none"></p>
+  </div>
+
+  <!-- Étape 2a : nouveau joueur → créer mot de passe -->
+  <div id="login-step2-new" style="display:none">
+    <p style="font-size:.8rem;color:var(--green);margin-bottom:.8rem">✅ Nouveau joueur — choisis un mot de passe</p>
+    <input type="password" id="login-pwd-new" placeholder="Choisis un mot de passe..." maxlength="30" onkeydown="if(event.key==='Enter')loginCreate()">
+    <input type="password" id="login-pwd-confirm" placeholder="Confirme le mot de passe..." maxlength="30" style="margin-top:.5rem" onkeydown="if(event.key==='Enter')loginCreate()">
+    <button class="btn" style="width:100%;padding:.55rem;margin-top:.3rem" onclick="loginCreate()">🚀 Créer mon compte</button>
+    <button class="btn out" style="width:100%;padding:.4rem;margin-top:.4rem;font-size:.75rem" onclick="loginBack()">← Retour</button>
+    <p id="login-err2" style="color:#f87171;font-size:.8rem;margin-top:.5rem;display:none"></p>
+  </div>
+
+  <!-- Étape 2b : joueur existant → saisir mot de passe -->
+  <div id="login-step2-existing" style="display:none">
+    <p style="font-size:.8rem;color:#60a5fa;margin-bottom:.8rem" id="login-welcome"></p>
+    <input type="password" id="login-pwd" placeholder="Ton mot de passe..." maxlength="30" onkeydown="if(event.key==='Enter')loginVerify()">
+    <button class="btn" style="width:100%;padding:.55rem;margin-top:.3rem" onclick="loginVerify()">🔓 Se connecter</button>
+    <button class="btn out" style="width:100%;padding:.4rem;margin-top:.4rem;font-size:.75rem" onclick="loginBack()">← Retour</button>
+    <p id="login-err3" style="color:#f87171;font-size:.8rem;margin-top:.5rem;display:none"></p>
   </div>
 </div>
 
@@ -450,50 +469,110 @@ function showLogin(){
   document.getElementById('login-screen').style.display='block';
   document.getElementById('main-header').style.display='none';
   document.getElementById('main-content').style.display='none';
-  renderLoginExisting();
+  loginBack();
 }
-function renderLoginExisting(){
-  if(S.players.length>0){
-    document.getElementById('existing-block').style.display='block';
-    const list=document.getElementById('existing-list');list.innerHTML='';
-    S.players.forEach(p=>{
-      const btn=document.createElement('button');btn.className='player-btn';
-      btn.textContent='👤 '+p;btn.onclick=()=>loginAs(p);list.appendChild(btn);
-    });
+function loginBack(){
+  document.getElementById('login-step1').style.display='block';
+  document.getElementById('login-step2-new').style.display='none';
+  document.getElementById('login-step2-existing').style.display='none';
+  document.getElementById('login-name').value='';
+  document.getElementById('login-err').style.display='none';
+  setTimeout(()=>document.getElementById('login-name').focus(),100);
+}
+function loginStep1(){
+  const n=document.getElementById('login-name').value.trim();
+  const err=document.getElementById('login-err');
+  if(!n){err.style.display='block';err.textContent='Entre ton prénom !';return;}
+  if(n.length>20){err.style.display='block';err.textContent='Prénom trop long (20 max) !';return;}
+  err.style.display='none';
+  document.getElementById('login-step1').style.display='none';
+  if(S.players.includes(n)){
+    // Joueur existant → demander mot de passe
+    document.getElementById('login-welcome').textContent='👤 Bonjour '+n+' !';
+    document.getElementById('login-step2-existing').style.display='block';
+    document.getElementById('login-err3').style.display='none';
+    document.getElementById('login-pwd').value='';
+    setTimeout(()=>document.getElementById('login-pwd').focus(),100);
+  } else {
+    // Nouveau joueur
+    if(S.players.length>=20){
+      document.getElementById('login-step1').style.display='block';
+      err.style.display='block';err.textContent='Maximum 20 participants atteint !';return;
+    }
+    document.getElementById('login-step2-new').style.display='block';
+    document.getElementById('login-err2').style.display='none';
+    document.getElementById('login-pwd-new').value='';
+    document.getElementById('login-pwd-confirm').value='';
+    setTimeout(()=>document.getElementById('login-pwd-new').focus(),100);
   }
 }
+// Hash simple (non crypto mais suffisant pour usage ludique)
+function simpleHash(str){
+  let h=0;for(let i=0;i<str.length;i++){h=Math.imul(31,h)+str.charCodeAt(i)|0;}
+  return h.toString(36);
+}
+async function loginCreate(){
+  const n=document.getElementById('login-name').value.trim();
+  const p1=document.getElementById('login-pwd-new').value;
+  const p2=document.getElementById('login-pwd-confirm').value;
+  const err=document.getElementById('login-err2');
+  if(!p1){err.style.display='block';err.textContent='Choisis un mot de passe !';return;}
+  if(p1.length<3){err.style.display='block';err.textContent='Mot de passe trop court (3 min) !';return;}
+  if(p1!==p2){err.style.display='block';err.textContent='Les mots de passe ne correspondent pas !';return;}
+  err.style.display='none';
+  const hash=simpleHash(p1);
+  // Sauvegarder joueur + hash
+  const newList=[...S.players,n];
+  await fbSet('players',newList);
+  await fbSet('passwords/'+n,hash);
+  curPlayer=n;
+  try{localStorage.setItem('cdm2026_player',n);localStorage.setItem('cdm2026_pwd_'+n,hash);}catch(e){}
+  showApp();renderAll();updateGBD();
+}
+async function loginVerify(){
+  const n=document.getElementById('login-name').value.trim();
+  const pwd=document.getElementById('login-pwd').value;
+  const err=document.getElementById('login-err3');
+  if(!pwd){err.style.display='block';err.textContent='Entre ton mot de passe !';return;}
+  // Récupérer hash depuis Firebase
+  try{
+    const snap=await get(ref(db,'passwords/'+n));
+    if(!snap.exists()){
+      // Ancien compte sans mot de passe → accepter et créer un hash
+      curPlayer=n;
+      const hash=simpleHash(pwd);
+      await fbSet('passwords/'+n,hash);
+      try{localStorage.setItem('cdm2026_player',n);localStorage.setItem('cdm2026_pwd_'+n,hash);}catch(e){}
+      showApp();renderAll();updateGBD();return;
+    }
+    const storedHash=snap.val();
+    if(simpleHash(pwd)===storedHash){
+      curPlayer=n;
+      try{localStorage.setItem('cdm2026_player',n);localStorage.setItem('cdm2026_pwd_'+n,storedHash);}catch(e){}
+      showApp();renderAll();updateGBD();
+    } else {
+      err.style.display='block';err.textContent='Mot de passe incorrect !';
+      document.getElementById('login-pwd').value='';
+      document.getElementById('login-pwd').focus();
+    }
+  }catch(e){err.style.display='block';err.textContent='Erreur de connexion, réessaie.';}
+}
+function renderLoginExisting(){} // Plus utilisé mais gardé pour compatibilité
 function showApp(){
   document.getElementById('login-screen').style.display='none';
   document.getElementById('main-header').style.display='block';
   document.getElementById('main-content').style.display='block';
   document.getElementById('cur-lbl').textContent=curPlayer;
 }
-async function doLogin(){
-  const n=document.getElementById('login-name').value.trim();
-  const err=document.getElementById('login-err');
-  if(!n){err.style.display='block';err.textContent='Entre ton prénom !';return;}
-  if(n.length>20){err.style.display='block';err.textContent='Prénom trop long !';return;}
-  if(S.players.length>=20&&!S.players.includes(n)){err.style.display='block';err.textContent='Maximum 20 participants atteint !';return;}
-  err.style.display='none';
-  if(!S.players.includes(n)){
-    const newList=[...S.players,n];
-    await fbSet('players',newList);
-  }
-  curPlayer=n;
-  try{localStorage.setItem('cdm2026_player',n);}catch(e){}
-  showApp();renderAll();updateGBD();
-}
-function loginAs(name){
-  curPlayer=name;
-  try{localStorage.setItem('cdm2026_player',name);}catch(e){}
-  showApp();renderAll();updateGBD();
-}
+async function doLogin(){loginStep1();}
+function loginAs(name){loginStep1();}
 function doLogout(){
   curPlayer=null;
   try{localStorage.removeItem('cdm2026_player');}catch(e){}
   showLogin();
 }
 window.doLogin=doLogin;window.doLogout=doLogout;window.loginAs=loginAs;
+window.loginStep1=loginStep1;window.loginCreate=loginCreate;window.loginVerify=loginVerify;window.loginBack=loginBack;
 
 // ===== SBAR =====
 function renderSbar(){
@@ -880,6 +959,14 @@ window.admSave=async function(mid){
 };
 
 // ===== GESTION JOUEURS ADMIN =====
+window.admResetPwd=async function(name){
+  const newPwd=prompt(`Nouveau mot de passe pour "${name}" :`);
+  if(!newPwd||newPwd.length<3){alert('Mot de passe trop court !');return;}
+  const hash=simpleHash(newPwd);
+  await fbSet('passwords/'+name,hash);
+  alert(`✅ Mot de passe de "${name}" réinitialisé !`);
+};
+
 window.admRenamePlayer=async function(oldName){
   const inp=document.getElementById('rename-'+oldName);
   const newName=inp.value.trim();
@@ -938,6 +1025,7 @@ function renderAdmPlayers(){
       <span style="font-weight:700;font-size:.85rem;min-width:80px;color:${p===curPlayer?'var(--gold)':'var(--text)'}">${p}${p===curPlayer?' 👤':''}</span>
       <input type="text" id="rename-${p}" placeholder="Nouveau prénom..." maxlength="20">
       <button class="btn sm" onclick="admRenamePlayer('${p}')">✏️ Renommer</button>
+      <button class="btn sm" style="background:linear-gradient(135deg,#1a5276,#0d2d45);color:#60a5fa" onclick="admResetPwd('${p}')">🔑 Réinit. MDP</button>
       <button class="btn sm danger" onclick="admDeletePlayer('${p}')">🗑️ Supprimer</button>
     </div>
   `).join('');
@@ -974,13 +1062,18 @@ function renderAll(){renderSbar();renderGroups();renderKO();renderRanking();rend
 // ===== BOOT =====
 startListeners();
 renderEmbar();
-// Récupérer joueur sauvegardé
-try{const saved=localStorage.getItem('cdm2026_player');if(saved)curPlayer=saved;}catch(e){}
-// Attendre les données Firebase avant d'afficher
 setTimeout(()=>{
   document.getElementById('loading-full').style.display='none';
-  if(curPlayer&&S.players.includes(curPlayer)){showApp();renderAll();}
-  else{showLogin();}
+  try{
+    const saved=localStorage.getItem('cdm2026_player');
+    const savedHash=saved?localStorage.getItem('cdm2026_pwd_'+saved):null;
+    if(saved&&savedHash&&S.players.includes(saved)){
+      get(ref(db,'passwords/'+saved)).then(snap=>{
+        if(!snap.exists()||snap.val()===savedHash){curPlayer=saved;showApp();renderAll();}
+        else{showLogin();}
+      }).catch(()=>{curPlayer=saved;showApp();renderAll();});
+    } else {showLogin();}
+  }catch(e){showLogin();}
 },1500);
 
 </script>
