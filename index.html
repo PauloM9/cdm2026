@@ -1042,22 +1042,37 @@ window.admDeletePlayer=async function(name){
   // Demande de confirmation via un flag
   if(!document.getElementById('confirm-del-'+name)){
     if(errEl){errEl.style.color='#f87171';errEl.textContent='⚠ Clique à nouveau pour confirmer';}
-    // Ajouter un flag temporaire
     const flag=document.createElement('span');flag.id='confirm-del-'+name;
-    document.getElementById('rename-err-'+name).after(flag);
+    if(errEl)errEl.after(flag);
     setTimeout(()=>{
       const f=document.getElementById('confirm-del-'+name);if(f)f.remove();
-      if(errEl)errEl.textContent='';
+      if(errEl&&errEl.textContent.includes('confirmer'))errEl.textContent='';
     },3000);
     return;
   }
   // Confirmé → supprimer
   document.getElementById('confirm-del-'+name).remove();
+  // Mettre à jour Firebase
   const newList=S.players.filter(p=>p!==name);
   await fbSet('players',newList);
   await fbSet('bets/'+name,null);
   await fbSet('passwords/'+name,null);
-  if(curPlayer===name){curPlayer=null;try{localStorage.removeItem('cdm2026_player');}catch(e){}showLogin();}
+  // Mettre à jour l'état local immédiatement
+  S.players=newList;
+  delete S.bets[name];
+  // Re-render tout immédiatement sans attendre Firebase sync
+  renderSbar();
+  renderGroups();
+  renderKO();
+  renderRanking();
+  renderScorers();
+  renderAdmPlayers();
+  // Si c'est le joueur connecté
+  if(curPlayer===name){
+    curPlayer=null;
+    try{localStorage.removeItem('cdm2026_player');localStorage.removeItem('cdm2026_pwd_'+name);}catch(e){}
+    showLogin();
+  }
 };
 
 function renderAdmPlayers(){
