@@ -978,18 +978,22 @@ window.admSave=async function(mid){
 
 // ===== GESTION JOUEURS ADMIN =====
 window.admResetPwd=async function(name){
-  const newPwd=prompt(`Nouveau mot de passe pour "${name}" :`);
-  if(!newPwd||newPwd.length<3){alert('Mot de passe trop court !');return;}
+  const newPwd=document.getElementById('resetpwd-'+name).value.trim();
+  const errEl=document.getElementById('resetpwd-err-'+name);
+  if(!newPwd||newPwd.length<3){if(errEl)errEl.textContent='⚠ 3 caractères min';return;}
   const hash=simpleHash(newPwd);
   await fbSet('passwords/'+name,hash);
-  alert(`✅ Mot de passe de "${name}" réinitialisé !`);
+  document.getElementById('resetpwd-'+name).value='';
+  if(errEl){errEl.style.color='var(--green)';errEl.textContent='✅ Mot de passe réinitialisé !';}
+  setTimeout(()=>{if(errEl)errEl.textContent='';},2500);
 };
 
 window.admRenamePlayer=async function(oldName){
   const inp=document.getElementById('rename-'+oldName);
   const newName=inp.value.trim();
-  if(!newName||newName===oldName)return;
-  if(S.players.includes(newName)){alert('Ce nom existe déjà !');return;}
+  const errEl=document.getElementById('rename-err-'+oldName);
+  if(!newName||newName===oldName){if(errEl)errEl.textContent='⚠ Entre un nouveau prénom';return;}
+  if(S.players.includes(newName)){if(errEl)errEl.textContent='⚠ Ce nom existe déjà';return;}
   // Mise à jour liste joueurs
   const newList=S.players.map(p=>p===oldName?newName:p);
   await fbSet('players',newList);
@@ -998,28 +1002,53 @@ window.admRenamePlayer=async function(oldName){
     await fbSet('bets/'+newName,S.bets[oldName]);
     await fbSet('bets/'+oldName,null);
   }
+  // Migrer mot de passe
+  if(S.passwords&&S.passwords[oldName]){
+    await fbSet('passwords/'+newName,S.passwords[oldName]);
+    await fbSet('passwords/'+oldName,null);
+  }
   // Migrer le chat
-  const newChat=S.chat.map(m=>m.au===oldName?{...m,au:newName}:m);
-  // Reconstruire chat dans Firebase
-  const {get:fbGet}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js");
-  const chatSnap=await fbGet(ref(db,'chat'));
+  const chatSnap=await get(ref(db,'chat'));
   if(chatSnap.exists()){
     const raw=chatSnap.val();
-    const updates={};
-    Object.entries(raw).forEach(([k,v])=>{if(v.au===oldName)updates['chat/'+k]={...v,au:newName};});
-    for(const[path,val]of Object.entries(updates))await fbSet(path,val);
+    for(const[k,v] of Object.entries(raw)){
+      if(v.au===oldName) await fbSet('chat/'+k,{...v,au:newName});
+    }
   }
-  // Si c'est le joueur connecté, mettre à jour
-  if(curPlayer===oldName){curPlayer=newName;try{localStorage.setItem('cdm2026_player',newName);}catch(e){}document.getElementById('cur-lbl').textContent=newName;}
+  // Si c'est le joueur connecté
+  if(curPlayer===oldName){
+    curPlayer=newName;
+    try{localStorage.setItem('cdm2026_player',newName);
+      const oldHash=localStorage.getItem('cdm2026_pwd_'+oldName);
+      if(oldHash){localStorage.setItem('cdm2026_pwd_'+newName,oldHash);localStorage.removeItem('cdm2026_pwd_'+oldName);}
+    }catch(e){}
+    document.getElementById('cur-lbl').textContent=newName;
+  }
   inp.value='';
-  const btn=inp.nextElementSibling;if(btn){btn.textContent='✅ Renommé !';setTimeout(()=>btn.textContent='✏️ Renommer',1500);}
+  if(errEl){errEl.style.color='var(--green)';errEl.textContent='✅ Renommé !';}
+  setTimeout(()=>{if(errEl)errEl.textContent='';},2000);
 };
 
 window.admDeletePlayer=async function(name){
-  if(!confirm(`Supprimer "${name}" et tous ses paris ? Cette action est irréversible.`))return;
+  const errEl=document.getElementById('rename-err-'+name);
+  // Demande de confirmation via un flag
+  if(!document.getElementById('confirm-del-'+name)){
+    if(errEl){errEl.style.color='#f87171';errEl.textContent='⚠ Clique à nouveau pour confirmer';}
+    // Ajouter un flag temporaire
+    const flag=document.createElement('span');flag.id='confirm-del-'+name;
+    document.getElementById('rename-err-'+name).after(flag);
+    setTimeout(()=>{
+      const f=document.getElementById('confirm-del-'+name);if(f)f.remove();
+      if(errEl)errEl.textContent='';
+    },3000);
+    return;
+  }
+  // Confirmé → supprimer
+  document.getElementById('confirm-del-'+name).remove();
   const newList=S.players.filter(p=>p!==name);
   await fbSet('players',newList);
   await fbSet('bets/'+name,null);
+  await fbSet('passwords/'+name,null);
   if(curPlayer===name){curPlayer=null;try{localStorage.removeItem('cdm2026_player');}catch(e){}showLogin();}
 };
 
@@ -1039,12 +1068,19 @@ function renderAdmPlayers(){
   if(!cont)return;
   if(!S.players.length){cont.innerHTML='<p style="color:var(--muted);font-size:.82rem">Aucun participant inscrit.</p>';return;}
   cont.innerHTML=S.players.map(p=>`
-    <div class="player-row">
-      <span style="font-weight:700;font-size:.85rem;min-width:80px;color:${p===curPlayer?'var(--gold)':'var(--text)'}">${p}${p===curPlayer?' 👤':''}</span>
-      <input type="text" id="rename-${p}" placeholder="Nouveau prénom..." maxlength="20">
-      <button class="btn sm" onclick="admRenamePlayer('${p}')">✏️ Renommer</button>
-      <button class="btn sm" style="background:linear-gradient(135deg,#1a5276,#0d2d45);color:#60a5fa" onclick="admResetPwd('${p}')">🔑 Réinit. MDP</button>
-      <button class="btn sm danger" onclick="admDeletePlayer('${p}')">🗑️ Supprimer</button>
+    <div class="player-row" style="flex-direction:column;align-items:stretch;gap:.4rem">
+      <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+        <span style="font-weight:700;font-size:.85rem;min-width:80px;color:${p===curPlayer?'var(--gold)':'var(--text)'}">${p}${p===curPlayer?' 👤':''}</span>
+        <input type="text" id="rename-${p}" placeholder="Nouveau prénom..." maxlength="20" style="flex:1;min-width:100px">
+        <button class="btn sm" onclick="admRenamePlayer('${p}')">✏️ Renommer</button>
+        <button class="btn sm danger" onclick="admDeletePlayer('${p}')">🗑️ Supprimer</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+        <input type="text" id="resetpwd-${p}" placeholder="Nouveau mot de passe..." maxlength="30" style="flex:1;min-width:120px">
+        <button class="btn sm" style="background:linear-gradient(135deg,#1a5276,#0d2d45);color:#60a5fa;border:1px solid #1a5276" onclick="admResetPwd('${p}')">🔑 Réinit. MDP</button>
+      </div>
+      <span id="rename-err-${p}" style="font-size:.75rem;color:#f87171"></span>
+      <span id="resetpwd-err-${p}" style="font-size:.75rem;color:#f87171"></span>
     </div>
   `).join('');
 }
