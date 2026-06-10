@@ -590,7 +590,7 @@ function buildMatchCard(m){
         <span style="font-size:.7rem;color:var(--muted)">Mon pari :</span>
         <span style="font-family:'Bebas Neue';font-size:1.1rem;color:${pc}">${bet.h} - ${bet.a}</span>${bd2}</div>`;
     } else {
-      myBet='<div style="text-align:center;font-size:.72rem;color:var(--muted);margin:.3rem 0;font-style:italic">— Tu n'avais pas parié ce match</div>';
+      myBet='<div style="text-align:center;font-size:.72rem;color:var(--muted);margin:.3rem 0;font-style:italic">— Tu n\'avais pas parié ce match</div>';
     }
     const pwb=S.players.filter(pl2=>S.bets[pl2]&&S.bets[pl2][m.id]&&S.bets[pl2][m.id].h!=='');
     const pnb=S.players.filter(pl2=>!S.bets[pl2]||!S.bets[pl2][m.id]||S.bets[pl2][m.id].h==='');
@@ -749,7 +749,7 @@ document.getElementById('ko-fbar').addEventListener('click',function(e){
 // ===== RANKING =====
 function renderRanking(){
   const cont=document.getElementById('rkgcont');
-  if(!S.players.length){cont.innerHTML='<p style="color:var(--muted);font-style:italic">Aucun participant pour l'instant...</p>';return;}
+  if(!S.players.length){cont.innerHTML="<p style='color:var(--muted);font-style:italic'>Aucun participant pour l'instant...</p>";return;}
   const ranked=S.players.map(p=>({name:p,...playerScore(p)})).sort((a,b)=>b.total-a.total||b.pf-a.pf||b.gd-a.gd||b.nb-a.nb);
   const fr=S.finalResults||{};
   let html=`<table class="rtbl"><thead><tr><th style="text-align:center">#</th><th>Joueur</th><th style="text-align:center">Pts</th><th style="text-align:center">🏆</th><th style="text-align:center">⚽</th><th style="text-align:center">Pariés</th><th style="text-align:center">⭐</th><th style="text-align:center">✅</th><th style="text-align:center">❌</th><th>Paris spéciaux</th><th>Commentaire</th></tr></thead><tbody>`;
@@ -783,8 +783,8 @@ function renderScorers(){
   // Prédictions
   const sp=document.getElementById('spreds');
   const compStarted=isLocked(GM[0]);const fr=S.finalResults||{};
-  let ph='<strong style="color:var(--gold);font-family:'Bebas Neue';font-size:1.05rem;letter-spacing:1px;width:100%">PARIS SPÉCIAUX</strong>';
-  if(!compStarted){ph+=`<div style="width:100%;font-size:.78rem;color:#60a5fa;background:rgba(59,130,246,.08);border-radius:6px;padding:.35rem .7rem">🔒 Paris cachés jusqu'au 11 juin 21h00. Tu ne vois que le tien.</div>`;}
+  let ph='<strong style="color:var(--gold);font-family:\'Bebas Neue\';font-size:1.05rem;letter-spacing:1px;width:100%">PARIS SPÉCIAUX</strong>';
+  if(!compStarted){ph+=`<div style="width:100%;font-size:.78rem;color:#60a5fa;background:rgba(59,130,246,.08);border-radius:6px;padding:.35rem .7rem">🔒 Paris cachés jusqu\'au 11 juin 21h00. Tu ne vois que le tien.</div>`;}
   else if(fr.winner||fr.scorer){ph+=`<div style="width:100%;font-size:.75rem;color:var(--green);background:rgba(34,197,94,.08);border-radius:6px;padding:.35rem .6rem">✅ Résultats finaux — Vainqueur: <strong>${fr.winner||'?'}</strong> | Buteur: <strong>${fr.scorer||'?'}</strong></div>`;}
   const toShow=compStarted?S.players:[curPlayer].filter(Boolean);
   toShow.forEach(p=>{
@@ -864,7 +864,7 @@ function renderAdmPlayers(){
   // Liste joueurs
   const cont=document.getElementById('adm-players-list');if(!cont)return;
   cont.innerHTML='';
-  if(!S.players.length){cont.innerHTML='<p style="color:var(--muted);font-size:.82rem">Aucun participant.</p>';return;}
+  if(!S.players.length){cont.innerHTML="<p style='color:var(--muted);font-size:.82rem'>Aucun participant.</p>";return;}
   S.players.forEach(p=>{
     const div=document.createElement('div');div.className='adm-player-row';
     div.innerHTML=`
