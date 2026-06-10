@@ -770,7 +770,26 @@ function renderRanking(){
 // ===== SCORERS =====
 function renderScorers(){
   const sc={};
-  Object.values(S.results).forEach(r=>{if(!r||!r.sc)return;r.sc.forEach(e=>{const[nm,ct]=(e||'').split('|');if(!nm)return;if(!sc[nm])sc[nm]={goals:0,ct:ct||''};sc[nm].goals++;});});
+  Object.values(S.results).forEach(r=>{
+    if(!r)return;
+    // Firebase peut convertir les tableaux en objets — on gère les deux cas
+    let scorers=[];
+    if(r.sc){
+      if(Array.isArray(r.sc))scorers=r.sc;
+      else if(typeof r.sc==='object')scorers=Object.values(r.sc);
+    }
+    // Fallback : utiliser sr (string brut) si sc est vide
+    if(!scorers.length&&r.sr){
+      scorers=r.sr.split(',').map(s=>s.trim()).filter(Boolean);
+    }
+    scorers.forEach(e=>{
+      const[nm,ct]=(e||'').split('|');
+      if(!nm||!nm.trim())return;
+      const name=nm.trim();
+      if(!sc[name])sc[name]={goals:0,ct:ct||''};
+      sc[name].goals++;
+    });
+  });
   const sorted=Object.entries(sc).sort((a,b)=>b[1].goals-a[1].goals);
   const cont=document.getElementById('scrcont');
   if(!sorted.length){cont.innerHTML='<p style="color:var(--muted);font-style:italic">Les buteurs apparaîtront au fil des matchs...</p>';return;}
