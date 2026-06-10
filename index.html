@@ -291,8 +291,8 @@ details[open]>summary{border-radius:6px 6px 0 0;margin-bottom:0}
     <div class="stitle">🔐 Administration</div>
     <div id="alg" class="alog">
       <p style="color:var(--muted);margin-bottom:.85rem;font-size:.88rem">Accès réservé à l'administrateur</p>
-      <input type="password" id="apwd" placeholder="Mot de passe..." onkeydown="if(event.key==='Enter')checkAdm()">
-      <button class="btn" onclick="checkAdm()">🔓 Connexion</button>
+      <input type="password" id="apwd" placeholder="Mot de passe..." onkeydown="if(event.key==='Enter')document.getElementById('btn-checkadm').click()">
+      <button class="btn" id="btn-checkadm">🔓 Connexion</button>
       <p id="aerr" style="color:#f87171;margin-top:.65rem;font-size:.8rem;display:none">Mot de passe incorrect !</p>
     </div>
     <div id="apnl" style="display:none">
@@ -313,7 +313,7 @@ details[open]>summary{border-radius:6px 6px 0 0;margin-bottom:0}
         <h3>🏆 Valider les paris spéciaux (fin de tournoi)</h3>
         <div class="bfield"><label>Vainqueur réel du tournoi</label><input type="text" id="adm-winner" placeholder="Ex: France"></div>
         <div class="bfield"><label>Meilleur buteur réel</label><input type="text" id="adm-scorer" placeholder="Ex: Mbappé"></div>
-        <button class="btn sm" onclick="admSaveFinal()">✅ Valider</button>
+        <button class="btn sm" id="btn-admfinal">✅ Valider</button>
         <span id="final-ok" class="saved-ok">✅ Sauvegardé !</span>
       </div>
       <div class="stitle" style="font-size:1.05rem">Saisir les résultats des matchs</div>
@@ -966,23 +966,7 @@ async function sendMsg(){
 window.sendMsg=sendMsg;
 
 // ===== ADMIN =====
-window.checkAdm=function(){
-  if(document.getElementById('apwd').value==='cdm2026admin'){
-    adminOn=true;document.getElementById('alg').style.display='none';document.getElementById('apnl').style.display='block';
-    if(S.finalResults){document.getElementById('adm-winner').value=S.finalResults.winner||'';document.getElementById('adm-scorer').value=S.finalResults.scorer||'';}
-    renderAdm();
-  } else document.getElementById('aerr').style.display='block';
-};
-window.admSaveFinal=async function(){
-  const w=document.getElementById('adm-winner').value.trim();const s=document.getElementById('adm-scorer').value.trim();
-  await fbSet('finalResults',{winner:w,scorer:s});
-  const ok=document.getElementById('final-ok');ok.style.display='block';setTimeout(()=>ok.style.display='none',2000);
-};
-window.admSave=async function(mid){
-  const h=document.getElementById(`ah-${mid}`).value.trim();const a=document.getElementById(`aa-${mid}`).value.trim();
-  const sr=document.getElementById(`as-${mid}`).value.trim();const sc=sr?sr.split(',').map(s=>s.trim()).filter(Boolean):[];
-  await fbSet('results/'+mid,{h,a,sc,sr});
-};
+// checkAdm et admSaveFinal gérés via listeners dans le boot
 
 // ===== GESTION JOUEURS ADMIN =====
 window.admResetPwd=async function(name){
@@ -1121,12 +1105,33 @@ function renderAdm(){
   renderAdmPlayers();
   const cont=document.getElementById('admlst');cont.innerHTML='';
   [...GM,...KMT].forEach(m=>{
-    const r=S.results[m.id]||{};const div=document.createElement('div');div.className='ami';
+    const r=S.results[m.id]||{};
+    const div=document.createElement('div');div.className='ami';
     let lb=m.g?`[${m.g}] ${m.d} ${m.t} — ${tname(m.h)} vs ${tname(m.a)}`:`${m.lb} (${m.d} ${m.t})`;
     if(!m.g){const{h,a}=getKOTeams(m);lb=`${m.lb} — ${h} vs ${a} (${m.d} ${m.t})`;}
     const saved=r.h!==undefined&&r.h!=='';
-    div.innerHTML=`<div class="amlbl">${lb}</div><div class="amisc"><input class="aisc" type="text" id="ah-${m.id}" placeholder="0" value="${saved?r.h:''}" inputmode="numeric"><span style="font-family:'Bebas Neue';font-size:1.1rem;color:var(--muted)">-</span><input class="aisc" type="text" id="aa-${m.id}" placeholder="0" value="${saved?r.a:''}" inputmode="numeric"></div><input class="absc" type="text" id="as-${m.id}" placeholder="Buteurs: Mbappé|FRA, Vinicius|BRE" value="${r.sr||''}"><button class="btn sm" onclick="admSave('${m.id}')">✅ Valider</button>${saved?`<span style="color:var(--green);font-size:.7rem">✅ ${r.h}-${r.a}</span>`:''}`;
+    div.innerHTML=`
+      <div class="amlbl">${lb}</div>
+      <div class="amisc">
+        <input class="aisc" type="text" id="ah-${m.id}" placeholder="0" value="${saved?r.h:''}" inputmode="numeric">
+        <span style="font-family:'Bebas Neue';font-size:1.1rem;color:var(--muted)">-</span>
+        <input class="aisc" type="text" id="aa-${m.id}" placeholder="0" value="${saved?r.a:''}" inputmode="numeric">
+      </div>
+      <input class="absc" type="text" id="as-${m.id}" placeholder="Buteurs: Mbappé|FRA, Vinicius|BRE" value="${r.sr||''}">
+      <button class="btn sm" id="btn-save-${m.id}">✅ Valider</button>
+      ${saved?`<span style="color:var(--green);font-size:.7rem" id="saved-lbl-${m.id}">✅ ${r.h}-${r.a}</span>`:`<span id="saved-lbl-${m.id}"></span>`}
+    `;
     cont.appendChild(div);
+    // Event listener JS (pas onclick inline)
+    document.getElementById('btn-save-'+m.id).addEventListener('click',async()=>{
+      const h=document.getElementById('ah-'+m.id).value.trim();
+      const a=document.getElementById('aa-'+m.id).value.trim();
+      const sr=document.getElementById('as-'+m.id).value.trim();
+      const sc=sr?sr.split(',').map(s=>s.trim()).filter(Boolean):[];
+      await fbSet('results/'+m.id,{h,a,sc,sr});
+      const lbl=document.getElementById('saved-lbl-'+m.id);
+      if(lbl){lbl.style.color='var(--green)';lbl.textContent=`✅ ${h}-${a} sauvegardé !`;}
+    });
   });
 }
 
@@ -1147,6 +1152,33 @@ function renderAll(){renderSbar();renderGroups();renderKO();renderRanking();rend
 // ===== BOOT =====
 startListeners();
 renderEmbar();
+// Attacher les listeners des boutons admin statiques
+document.getElementById('btn-checkadm').addEventListener('click',function(){
+  if(document.getElementById('apwd').value==='cdm2026admin'){
+    adminOn=true;
+    document.getElementById('alg').style.display='none';
+    document.getElementById('apnl').style.display='block';
+    if(S.finalResults){
+      document.getElementById('adm-winner').value=S.finalResults.winner||'';
+      document.getElementById('adm-scorer').value=S.finalResults.scorer||'';
+    }
+    renderAdm();
+  } else {
+    document.getElementById('aerr').style.display='block';
+  }
+});
+document.getElementById('btn-admfinal').addEventListener('click',async function(){
+  const w=document.getElementById('adm-winner').value.trim();
+  const s=document.getElementById('adm-scorer').value.trim();
+  await fbSet('finalResults',{winner:w,scorer:s});
+  const ok=document.getElementById('final-ok');ok.style.display='block';
+  setTimeout(()=>ok.style.display='none',2000);
+});
+// Sauvegarder paris spéciaux
+document.getElementById('gbtn').addEventListener('click',saveGB);
+// Chat
+document.getElementById('chin').addEventListener('keydown',e=>{if(e.key==='Enter')sendMsg();});
+document.querySelector('.chinbar .btn').addEventListener('click',sendMsg);
 setTimeout(()=>{
   document.getElementById('loading-full').style.display='none';
   try{
