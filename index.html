@@ -323,9 +323,9 @@ details[open]>summary{border-radius:6px 6px 0 0;margin-bottom:0}
 </main>
 
 <!-- Firebase SDK -->
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, set, get, onValue, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
 
 const firebaseConfig = {
   apiKey: "AIzaSyBve4HgrzUnWvkQWdQQEjnFuPTV9tQvJRk",
@@ -336,9 +336,18 @@ const firebaseConfig = {
   messagingSenderId: "486130463740",
   appId: "1:486130463740:web:3f857332bf7bd202b83879"
 };
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+// Wrappers pour compatibilité avec le reste du code
+function ref(database, path){return database.ref(path);}
+function onValue(dbRef, cb){dbRef.on('value', snap=>cb(snap));}
+async function get(dbRef){return dbRef.once('value');}
+async function set(dbRef, val){return dbRef.set(val);}
+async function push(dbRef, val){return dbRef.push(val);}
+async function fbSet(path, val){
+  try{await db.ref(path).set(val);}catch(e){console.error('fbSet error:',e);}
+}
 
 // ===== COMMENTAIRES =====
 const ALL_COMMENTS = {
@@ -409,11 +418,11 @@ function getComment(pname,pos){
 
 // ===== FIREBASE LISTENERS =====
 function startListeners(){
-  onValue(ref(db,'players'),snap=>{S.players=snap.val()||[];renderPlayerButtons();renderAll();renderAdmPlayers();});
-  onValue(ref(db,'bets'),snap=>{S.bets=snap.val()||{};renderAll();});
-  onValue(ref(db,'results'),snap=>{S.results=snap.val()||{};renderAll();renderAdm();});
-  onValue(ref(db,'finalResults'),snap=>{S.finalResults=snap.val()||{winner:'',scorer:''};renderAll();});
-  onValue(ref(db,'chat'),snap=>{
+  db.ref('players').on('value',snap=>{S.players=snap.val()||[];renderPlayerButtons();renderAll();renderAdmPlayers();});
+  db.ref('bets').on('value',snap=>{S.bets=snap.val()||{};renderAll();});
+  db.ref('results').on('value',snap=>{S.results=snap.val()||{};renderAll();renderAdm();});
+  db.ref('finalResults').on('value',snap=>{S.finalResults=snap.val()||{winner:'',scorer:''};renderAll();});
+  db.ref('chat').on('value',snap=>{
     const raw=snap.val()||{};
     const newChat=Object.values(raw).sort((a,b)=>(a.ts||0)-(b.ts||0));
     const prevLen=S.chat.length;
@@ -421,7 +430,6 @@ function startListeners(){
     const chatActive=document.getElementById('tab-chat').classList.contains('act');
     if(chatActive){renderChat();}
     else if(newChat.length>prevLen&&prevLen>0){
-      // Seulement si c'est un nouveau message (pas le chargement initial)
       const cn=document.getElementById('cn');
       const prev=parseInt(cn.textContent||0);
       cn.textContent=prev+(newChat.length-prevLen);cn.classList.remove('hid');
@@ -430,7 +438,7 @@ function startListeners(){
 }
 
 // ===== FIREBASE WRITE =====
-async function fbSet(path,val){try{await set(ref(db,path),val);}catch(e){console.error(e);}}
+async function fbSet(path,val){try{await db.ref(path).set(val);}catch(e){console.error(e);}}
 
 // ===== PROPAGATION =====
 function getStandings(g){
@@ -552,7 +560,7 @@ async function loginVerify(){
   const err=document.getElementById('login-err3');
   if(!pwd){err.style.display='block';err.textContent='Entre ton mot de passe !';return;}
   try{
-    const snap=await get(ref(db,'passwords/'+n));
+    const snap=await db.ref('passwords/'+n).once('value');
     if(!snap.exists()){
       // Ancien compte sans mot de passe → accepter et créer hash
       const hash=simpleHash(pwd);
@@ -953,7 +961,7 @@ async function sendMsg(){
   const inp=document.getElementById('chin');const tx=inp.value.trim();if(!tx)return;
   const now=new Date();const tm=now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
   inp.value='';
-  await push(ref(db,'chat'),{au:p,tx,tm,ts:Date.now()});
+  await db.ref('chat').push({au:p,tx,tm,ts:Date.now()});
 }
 window.sendMsg=sendMsg;
 
@@ -1008,7 +1016,7 @@ window.admRenamePlayer=async function(oldName){
     await fbSet('passwords/'+oldName,null);
   }
   // Migrer le chat
-  const chatSnap=await get(ref(db,'chat'));
+  const chatSnap=await db.ref('chat').once('value');
   if(chatSnap.exists()){
     const raw=chatSnap.val();
     for(const[k,v] of Object.entries(raw)){
@@ -1067,22 +1075,30 @@ function renderAdmPlayers(){
   const cont=document.getElementById('adm-players-list');
   if(!cont)return;
   if(!S.players.length){cont.innerHTML='<p style="color:var(--muted);font-size:.82rem">Aucun participant inscrit.</p>';return;}
-  cont.innerHTML=S.players.map(p=>`
-    <div class="player-row" style="flex-direction:column;align-items:stretch;gap:.4rem">
+  cont.innerHTML='';
+  S.players.forEach(p=>{
+    const div=document.createElement('div');
+    div.className='player-row';
+    div.style.cssText='flex-direction:column;align-items:stretch;gap:.4rem';
+    div.innerHTML=`
       <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
         <span style="font-weight:700;font-size:.85rem;min-width:80px;color:${p===curPlayer?'var(--gold)':'var(--text)'}">${p}${p===curPlayer?' 👤':''}</span>
         <input type="text" id="rename-${p}" placeholder="Nouveau prénom..." maxlength="20" style="flex:1;min-width:100px">
-        <button class="btn sm" onclick="admRenamePlayer('${p}')">✏️ Renommer</button>
-        <button class="btn sm danger" onclick="admDeletePlayer('${p}')">🗑️ Supprimer</button>
+        <button class="btn sm" id="btn-rename-${p}">✏️ Renommer</button>
+        <button class="btn sm danger" id="btn-del-${p}">🗑️ Supprimer</button>
       </div>
       <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
         <input type="text" id="resetpwd-${p}" placeholder="Nouveau mot de passe..." maxlength="30" style="flex:1;min-width:120px">
-        <button class="btn sm" style="background:linear-gradient(135deg,#1a5276,#0d2d45);color:#60a5fa;border:1px solid #1a5276" onclick="admResetPwd('${p}')">🔑 Réinit. MDP</button>
+        <button class="btn sm" id="btn-pwd-${p}" style="background:linear-gradient(135deg,#1a5276,#0d2d45);color:#60a5fa;border:1px solid #1a5276">🔑 Réinit. MDP</button>
       </div>
-      <span id="rename-err-${p}" style="font-size:.75rem;color:#f87171"></span>
-      <span id="resetpwd-err-${p}" style="font-size:.75rem;color:#f87171"></span>
-    </div>
-  `).join('');
+      <span id="rename-err-${p}" style="font-size:.75rem"></span>
+    `;
+    cont.appendChild(div);
+    // Attacher les événements en JS (pas en onclick inline)
+    document.getElementById('btn-rename-'+p).addEventListener('click',()=>admRenamePlayer(p));
+    document.getElementById('btn-del-'+p).addEventListener('click',()=>admDeletePlayer(p));
+    document.getElementById('btn-pwd-'+p).addEventListener('click',()=>admResetPwd(p));
+  });
 }
 
 function renderAdm(){
@@ -1122,7 +1138,7 @@ setTimeout(()=>{
     const saved=localStorage.getItem('cdm2026_player');
     const savedHash=saved?localStorage.getItem('cdm2026_pwd_'+saved):null;
     if(saved&&savedHash&&S.players.includes(saved)){
-      get(ref(db,'passwords/'+saved)).then(snap=>{
+    db.ref('passwords/'+saved).once('value').then(snap=>{
         if(!snap.exists()||snap.val()===savedHash){curPlayer=saved;showApp();renderAll();}
         else{showLogin();}
       }).catch(()=>{curPlayer=saved;showApp();renderAll();});
