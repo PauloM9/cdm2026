@@ -179,31 +179,36 @@ details[open]>summary{border-radius:6px 6px 0 0;margin-bottom:0}
 <div id="login-screen" class="login-screen" style="display:none">
   <div style="font-size:3rem;margin-bottom:.5rem">⚽</div>
   <h2>CDM <span style="color:var(--red)">2026</span></h2>
-  <p id="login-subtitle">Identifie-toi pour accéder aux pronostics</p>
 
-  <!-- Étape 1 : choisir son nom -->
+  <!-- Étape 1 : liste des pseudos + créer nouveau -->
   <div id="login-step1">
-    <input type="text" id="login-name" placeholder="Entre ton prénom..." maxlength="20" onkeydown="if(event.key==='Enter')loginStep1()">
-    <button class="btn" style="width:100%;padding:.55rem" onclick="loginStep1()">Continuer →</button>
+    <p style="color:var(--muted);font-size:.85rem;margin-bottom:1rem">Clique sur ton prénom pour te connecter</p>
+    <div id="existing-list" style="display:flex;flex-direction:column;gap:.4rem;margin-bottom:1rem"></div>
+    <div style="border-top:1px solid var(--card2);padding-top:.9rem;margin-top:.4rem">
+      <p style="font-size:.75rem;color:var(--muted);margin-bottom:.5rem">Première fois ? Crée ton compte :</p>
+      <input type="text" id="login-name" placeholder="Entre ton prénom..." maxlength="20" onkeydown="if(event.key==='Enter')loginNewStep()">
+      <button class="btn" style="width:100%;padding:.5rem;margin-top:.4rem" onclick="loginNewStep()">➕ Créer mon compte</button>
+    </div>
     <p id="login-err" style="color:#f87171;font-size:.8rem;margin-top:.5rem;display:none"></p>
   </div>
 
   <!-- Étape 2a : nouveau joueur → créer mot de passe -->
   <div id="login-step2-new" style="display:none">
-    <p style="font-size:.8rem;color:var(--green);margin-bottom:.8rem">✅ Nouveau joueur — choisis un mot de passe</p>
-    <input type="password" id="login-pwd-new" placeholder="Choisis un mot de passe..." maxlength="30" onkeydown="if(event.key==='Enter')loginCreate()">
+    <p style="font-size:.85rem;color:var(--green);margin-bottom:.8rem">✅ Nouveau compte — <strong id="new-name-display"></strong></p>
+    <p style="font-size:.78rem;color:var(--muted);margin-bottom:.6rem">Choisis un mot de passe pour sécuriser ton compte</p>
+    <input type="password" id="login-pwd-new" placeholder="Mot de passe..." maxlength="30" onkeydown="if(event.key==='Enter')loginCreate()">
     <input type="password" id="login-pwd-confirm" placeholder="Confirme le mot de passe..." maxlength="30" style="margin-top:.5rem" onkeydown="if(event.key==='Enter')loginCreate()">
-    <button class="btn" style="width:100%;padding:.55rem;margin-top:.3rem" onclick="loginCreate()">🚀 Créer mon compte</button>
-    <button class="btn out" style="width:100%;padding:.4rem;margin-top:.4rem;font-size:.75rem" onclick="loginBack()">← Retour</button>
+    <button class="btn" style="width:100%;padding:.5rem;margin-top:.4rem" onclick="loginCreate()">🚀 Créer mon compte</button>
+    <button class="btn out" style="width:100%;padding:.38rem;margin-top:.4rem;font-size:.75rem" onclick="loginBack()">← Retour</button>
     <p id="login-err2" style="color:#f87171;font-size:.8rem;margin-top:.5rem;display:none"></p>
   </div>
 
   <!-- Étape 2b : joueur existant → saisir mot de passe -->
   <div id="login-step2-existing" style="display:none">
-    <p style="font-size:.8rem;color:#60a5fa;margin-bottom:.8rem" id="login-welcome"></p>
+    <p style="font-size:.9rem;color:#60a5fa;margin-bottom:.8rem">👤 Bonjour <strong id="login-welcome"></strong> !</p>
     <input type="password" id="login-pwd" placeholder="Ton mot de passe..." maxlength="30" onkeydown="if(event.key==='Enter')loginVerify()">
-    <button class="btn" style="width:100%;padding:.55rem;margin-top:.3rem" onclick="loginVerify()">🔓 Se connecter</button>
-    <button class="btn out" style="width:100%;padding:.4rem;margin-top:.4rem;font-size:.75rem" onclick="loginBack()">← Retour</button>
+    <button class="btn" style="width:100%;padding:.5rem;margin-top:.4rem" onclick="loginVerify()">🔓 Se connecter</button>
+    <button class="btn out" style="width:100%;padding:.38rem;margin-top:.4rem;font-size:.75rem" onclick="loginBack()">← Retour</button>
     <p id="login-err3" style="color:#f87171;font-size:.8rem;margin-top:.5rem;display:none"></p>
   </div>
 </div>
@@ -404,7 +409,7 @@ function getComment(pname,pos){
 
 // ===== FIREBASE LISTENERS =====
 function startListeners(){
-  onValue(ref(db,'players'),snap=>{S.players=snap.val()||[];renderLoginExisting();renderAll();renderAdmPlayers();});
+  onValue(ref(db,'players'),snap=>{S.players=snap.val()||[];renderPlayerButtons();renderAll();renderAdmPlayers();});
   onValue(ref(db,'bets'),snap=>{S.bets=snap.val()||{};renderAll();});
   onValue(ref(db,'results'),snap=>{S.results=snap.val()||{};renderAll();renderAdm();});
   onValue(ref(db,'finalResults'),snap=>{S.finalResults=snap.val()||{winner:'',scorer:''};renderAll();});
@@ -475,38 +480,51 @@ function loginBack(){
   document.getElementById('login-step1').style.display='block';
   document.getElementById('login-step2-new').style.display='none';
   document.getElementById('login-step2-existing').style.display='none';
-  document.getElementById('login-name').value='';
   document.getElementById('login-err').style.display='none';
-  setTimeout(()=>document.getElementById('login-name').focus(),100);
+  renderPlayerButtons();
 }
-function loginStep1(){
+function renderPlayerButtons(){
+  const list=document.getElementById('existing-list');
+  list.innerHTML='';
+  if(S.players.length===0){
+    list.innerHTML='<p style="color:var(--muted);font-size:.8rem;font-style:italic;text-align:center">Aucun participant encore — crée le premier compte !</p>';
+    return;
+  }
+  S.players.forEach(p=>{
+    const btn=document.createElement('button');
+    btn.className='player-btn';
+    btn.innerHTML=`👤 ${p}`;
+    btn.onclick=()=>loginSelectPlayer(p);
+    list.appendChild(btn);
+  });
+}
+function loginSelectPlayer(name){
+  document.getElementById('login-welcome').textContent=name;
+  document.getElementById('login-step1').style.display='none';
+  document.getElementById('login-step2-existing').style.display='block';
+  document.getElementById('login-err3').style.display='none';
+  document.getElementById('login-pwd').value='';
+  setTimeout(()=>document.getElementById('login-pwd').focus(),100);
+}
+function loginNewStep(){
   const n=document.getElementById('login-name').value.trim();
   const err=document.getElementById('login-err');
   if(!n){err.style.display='block';err.textContent='Entre ton prénom !';return;}
   if(n.length>20){err.style.display='block';err.textContent='Prénom trop long (20 max) !';return;}
-  err.style.display='none';
-  document.getElementById('login-step1').style.display='none';
   if(S.players.includes(n)){
-    // Joueur existant → demander mot de passe
-    document.getElementById('login-welcome').textContent='👤 Bonjour '+n+' !';
-    document.getElementById('login-step2-existing').style.display='block';
-    document.getElementById('login-err3').style.display='none';
-    document.getElementById('login-pwd').value='';
-    setTimeout(()=>document.getElementById('login-pwd').focus(),100);
-  } else {
-    // Nouveau joueur
-    if(S.players.length>=20){
-      document.getElementById('login-step1').style.display='block';
-      err.style.display='block';err.textContent='Maximum 20 participants atteint !';return;
-    }
-    document.getElementById('login-step2-new').style.display='block';
-    document.getElementById('login-err2').style.display='none';
-    document.getElementById('login-pwd-new').value='';
-    document.getElementById('login-pwd-confirm').value='';
-    setTimeout(()=>document.getElementById('login-pwd-new').focus(),100);
+    // Nom déjà pris → aller directement à la saisie du mot de passe
+    loginSelectPlayer(n);return;
   }
+  if(S.players.length>=20){err.style.display='block';err.textContent='Maximum 20 participants atteint !';return;}
+  err.style.display='none';
+  document.getElementById('new-name-display').textContent=n;
+  document.getElementById('login-step1').style.display='none';
+  document.getElementById('login-step2-new').style.display='block';
+  document.getElementById('login-err2').style.display='none';
+  document.getElementById('login-pwd-new').value='';
+  document.getElementById('login-pwd-confirm').value='';
+  setTimeout(()=>document.getElementById('login-pwd-new').focus(),100);
 }
-// Hash simple (non crypto mais suffisant pour usage ludique)
 function simpleHash(str){
   let h=0;for(let i=0;i<str.length;i++){h=Math.imul(31,h)+str.charCodeAt(i)|0;}
   return h.toString(36);
@@ -521,7 +539,6 @@ async function loginCreate(){
   if(p1!==p2){err.style.display='block';err.textContent='Les mots de passe ne correspondent pas !';return;}
   err.style.display='none';
   const hash=simpleHash(p1);
-  // Sauvegarder joueur + hash
   const newList=[...S.players,n];
   await fbSet('players',newList);
   await fbSet('passwords/'+n,hash);
@@ -530,49 +547,50 @@ async function loginCreate(){
   showApp();renderAll();updateGBD();
 }
 async function loginVerify(){
-  const n=document.getElementById('login-name').value.trim();
+  const n=document.getElementById('login-welcome').textContent;
   const pwd=document.getElementById('login-pwd').value;
   const err=document.getElementById('login-err3');
   if(!pwd){err.style.display='block';err.textContent='Entre ton mot de passe !';return;}
-  // Récupérer hash depuis Firebase
   try{
     const snap=await get(ref(db,'passwords/'+n));
     if(!snap.exists()){
-      // Ancien compte sans mot de passe → accepter et créer un hash
-      curPlayer=n;
+      // Ancien compte sans mot de passe → accepter et créer hash
       const hash=simpleHash(pwd);
       await fbSet('passwords/'+n,hash);
+      curPlayer=n;
       try{localStorage.setItem('cdm2026_player',n);localStorage.setItem('cdm2026_pwd_'+n,hash);}catch(e){}
       showApp();renderAll();updateGBD();return;
     }
-    const storedHash=snap.val();
-    if(simpleHash(pwd)===storedHash){
+    if(simpleHash(pwd)===snap.val()){
+      const hash=snap.val();
       curPlayer=n;
-      try{localStorage.setItem('cdm2026_player',n);localStorage.setItem('cdm2026_pwd_'+n,storedHash);}catch(e){}
+      try{localStorage.setItem('cdm2026_player',n);localStorage.setItem('cdm2026_pwd_'+n,hash);}catch(e){}
       showApp();renderAll();updateGBD();
     } else {
-      err.style.display='block';err.textContent='Mot de passe incorrect !';
+      err.style.display='block';err.textContent='Mot de passe incorrect ❌';
       document.getElementById('login-pwd').value='';
       document.getElementById('login-pwd').focus();
     }
   }catch(e){err.style.display='block';err.textContent='Erreur de connexion, réessaie.';}
 }
-function renderLoginExisting(){} // Plus utilisé mais gardé pour compatibilité
+function renderLoginExisting(){renderPlayerButtons();}
 function showApp(){
   document.getElementById('login-screen').style.display='none';
   document.getElementById('main-header').style.display='block';
   document.getElementById('main-content').style.display='block';
   document.getElementById('cur-lbl').textContent=curPlayer;
 }
-async function doLogin(){loginStep1();}
-function loginAs(name){loginStep1();}
+async function doLogin(){loginNewStep();}
+function loginAs(name){loginSelectPlayer(name);}
 function doLogout(){
   curPlayer=null;
   try{localStorage.removeItem('cdm2026_player');}catch(e){}
   showLogin();
 }
 window.doLogin=doLogin;window.doLogout=doLogout;window.loginAs=loginAs;
-window.loginStep1=loginStep1;window.loginCreate=loginCreate;window.loginVerify=loginVerify;window.loginBack=loginBack;
+window.loginStep1=loginNewStep;window.loginNewStep=loginNewStep;
+window.loginCreate=loginCreate;window.loginVerify=loginVerify;
+window.loginBack=loginBack;window.loginSelectPlayer=loginSelectPlayer;
 
 // ===== SBAR =====
 function renderSbar(){
