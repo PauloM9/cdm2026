@@ -378,7 +378,11 @@ function tname(t){return t.split(' ').slice(1).join(' ');}
 function flag(t){const n=tname(t);return FLAGS[n]||t.split(' ')[0];}
 function teamDisplay(t){const n=tname(t);return(FLAGS[n]||'🏳️')+' '+n;}
 function mDT(m){const[d,mo,y]=m.d.split('/');const[h,mi]=m.t.split(':');return new Date(+y,+mo-1,+d,+h,+mi);}
-function isLocked(m){return new Date()>=new Date(mDT(m)-60000);}
+function isLocked(m){
+  // Vérifier si l'admin a forcé le déblocage de ce match
+  if(S.unlocks&&S.unlocks[m.id])return false;
+  return new Date()>=new Date(mDT(m)-60000);
+}
 function calcPts(bet,res){
   const bh=+bet.h,ba=+bet.a,rh=+res.h,ra=+res.a;
   if(isNaN(bh)||isNaN(ba)||isNaN(rh)||isNaN(ra))return 0;
@@ -407,7 +411,7 @@ const db=firebase.database();
 async function fbSet(path,val){await db.ref(path).set(val);}
 
 // State
-let S={players:[],bets:{},results:{},chat:[],finalResults:{winner:'',scorer:''},adjustments:{}};
+let S={players:[],bets:{},results:{},chat:[],finalResults:{winner:'',scorer:''},adjustments:{},unlocks:{}};
 let curPlayer=null;
 let adminOn=false;
 
@@ -430,6 +434,7 @@ function startListeners(){
     }
   });
   db.ref('adjustments').on('value',snap=>{S.adjustments=snap.val()||{};renderRanking();renderAdmAdjustments();});
+  db.ref('unlocks').on('value',snap=>{S.unlocks=snap.val()||{};renderGroups();renderKO();renderAdmScores();});
   db.ref('chat').on('value',snap=>{
     const raw=snap.val()||{};
     const newChat=Object.values(raw).sort((a,b)=>(a.ts||0)-(b.ts||0));
@@ -876,25 +881,37 @@ function renderAdmScores(){
     let lb=m.g?`[${m.g}] ${m.d} ${m.t} — ${tname(m.h)} vs ${tname(m.a)}`:`${m.lb} (${m.d} ${m.t})`;
     if(!m.g){const{h,a}=getKOTeams(m);lb=`${m.lb} — ${h} vs ${a} (${m.d} ${m.t})`;}
     const div=document.createElement('div');div.className='adm-match';
+    const isLk=isLocked(m)&&!S.unlocks[m.id];
+    const unlocked=!!S.unlocks[m.id];
     div.innerHTML=`
-      <div class="adm-match-lbl">${lb}</div>
+      <div class="adm-match-lbl">${lb}${unlocked?'<span style="color:var(--green);font-size:.72rem;margin-left:.4rem">🔓 Débloqué manuellement</span>':''}</div>
       <div class="adm-score-wrap">
         <input class="aisc" type="text" inputmode="numeric" placeholder="0" value="${saved?r.h:''}" maxlength="2">
         <span style="font-family:'Bebas Neue';font-size:1.1rem;color:var(--muted)"> - </span>
         <input class="aisc" type="text" inputmode="numeric" placeholder="0" value="${saved?r.a:''}" maxlength="2">
       </div>
       <input class="absc" type="text" placeholder="Buteurs: Mbappé|FRA, Vinicius|BRE" value="${r.sr||''}">
-      <button class="btn sm">✅ Valider</button>
+      <button class="btn sm btn-save-score">✅ Valider</button>
+      ${isLk&&!unlocked?`<button class="btn sm blue btn-unlock">🔓 Débloquer</button>`:''}
+      ${unlocked?`<button class="btn sm btn-relock" style="background:linear-gradient(135deg,#7d3c98,#5b2c6f);color:#fff">🔒 Rebloquer</button>`:''}
       <span class="adm-save-ok" style="color:var(--green);font-size:.72rem">${saved?`✅ ${r.h}-${r.a}`:''}</span>`;
     const inputs=div.querySelectorAll('.aisc');
     inputs.forEach(inp=>inp.addEventListener('input',function(){this.value=this.value.replace(/[^0-9]/g,'').slice(0,2);}));
-    div.querySelector('.btn').addEventListener('click',async function(){
+    div.querySelector('.btn-save-score').addEventListener('click',async function(){
       const h=inputs[0].value.trim();const a=inputs[1].value.trim();
       const sr=div.querySelector('.absc').value.trim();
       const sc=sr?sr.split(',').map(s=>s.trim()).filter(Boolean):[];
       await fbSet('results/'+m.id,{h,a,sc,sr});
       const ok=div.querySelector('.adm-save-ok');
       if(ok){ok.style.color='var(--green)';ok.textContent=`✅ ${h}-${a} sauvegardé !`;}
+    });
+    const btnUnlock=div.querySelector('.btn-unlock');
+    if(btnUnlock)btnUnlock.addEventListener('click',async function(){
+      await fbSet('unlocks/'+m.id,true);
+    });
+    const btnRelock=div.querySelector('.btn-relock');
+    if(btnRelock)btnRelock.addEventListener('click',async function(){
+      await fbSet('unlocks/'+m.id,null);
     });
     cont.appendChild(div);
   });
