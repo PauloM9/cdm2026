@@ -163,6 +163,9 @@ main{max-width:1400px;margin:0 auto;padding:1.2rem 1rem;position:relative;z-inde
 @keyframes spin{to{transform:rotate(360deg)}}
 details>summary{cursor:pointer;list-style:none}
 details>summary::-webkit-details-marker{display:none}
+#sidebar-matches::-webkit-scrollbar{width:3px}
+#sidebar-matches::-webkit-scrollbar-thumb{background:var(--card2);border-radius:3px}
+@media(max-width:700px){#sidebar-matches{display:none!important}}
 @media(max-width:580px){.logo{font-size:1.4rem}.tb{font-size:.7rem;padding:.52rem .45rem}.mgrid,.kgrid{grid-template-columns:1fr}.uplnl{width:100%}}
 </style>
 </head>
@@ -233,24 +236,35 @@ details>summary::-webkit-details-marker{display:none}
       <button class="btn" id="btn-savegb">💾 Sauvegarder</button>
       <span class="saved-ok" id="gok">✅ Sauvegardé !</span>
     </div>
-    <div class="legend">
-      <div class="ldot"><div class="lc" style="background:rgba(34,197,94,.6)"></div>1er qualifié</div>
-      <div class="ldot"><div class="lc" style="background:rgba(59,130,246,.6)"></div>2ème qualifié</div>
-      <div class="ldot"><div class="lc" style="background:rgba(251,191,36,.5)"></div>Pot. qualifié (3ème)</div>
-      <div class="ldot"><div class="lc" style="background:rgba(239,68,68,.4)"></div>Éliminé</div>
-    </div>
-    <div id="grpcont"></div>
-    <div class="kosec">
-      <div class="stitle">⚡ Phase Éliminatoire</div>
-      <div class="fbar" id="ko-fbar">
-        <button class="fb act" data-round="all">Tous</button>
-        <button class="fb" data-round="r16">1/16e</button>
-        <button class="fb" data-round="qf">1/8e</button>
-        <button class="fb" data-round="sf">Quarts</button>
-        <button class="fb" data-round="semi">Demies</button>
-        <button class="fb" data-round="fin">Finale</button>
+    <!-- Layout 2 colonnes -->
+    <div style="display:flex;gap:1.2rem;align-items:flex-start">
+      <!-- SIDEBAR : prochains matchs -->
+      <div id="sidebar-matches" style="width:220px;flex-shrink:0;position:sticky;top:60px;max-height:calc(100vh - 80px);overflow-y:auto;display:none">
+        <div style="font-family:'Bebas Neue';font-size:1.1rem;color:var(--gold);letter-spacing:1px;margin-bottom:.6rem;padding-bottom:.4rem;border-bottom:2px solid var(--gold)">📅 Prochains matchs</div>
+        <div id="sidebar-list"></div>
       </div>
-      <div class="kgrid" id="kocont"></div>
+      <!-- CONTENU PRINCIPAL -->
+      <div style="flex:1;min-width:0">
+        <div class="legend">
+          <div class="ldot"><div class="lc" style="background:rgba(34,197,94,.6)"></div>1er qualifié</div>
+          <div class="ldot"><div class="lc" style="background:rgba(59,130,246,.6)"></div>2ème qualifié</div>
+          <div class="ldot"><div class="lc" style="background:rgba(251,191,36,.5)"></div>Pot. qualifié (3ème)</div>
+          <div class="ldot"><div class="lc" style="background:rgba(239,68,68,.4)"></div>Éliminé</div>
+        </div>
+        <div id="grpcont"></div>
+        <div class="kosec">
+          <div class="stitle">⚡ Phase Éliminatoire</div>
+          <div class="fbar" id="ko-fbar">
+            <button class="fb act" data-round="all">Tous</button>
+            <button class="fb" data-round="r16">1/16e</button>
+            <button class="fb" data-round="qf">1/8e</button>
+            <button class="fb" data-round="sf">Quarts</button>
+            <button class="fb" data-round="semi">Demies</button>
+            <button class="fb" data-round="fin">Finale</button>
+          </div>
+          <div class="kgrid" id="kocont"></div>
+        </div>
+      </div>
     </div>
   </div>
   <!-- CLASSEMENT -->
@@ -1048,7 +1062,98 @@ document.getElementById('main-nav').addEventListener('click',function(e){
   if(tab==='admin'&&adminOn)renderAdm();
 });
 
-function renderAll(){renderSbar();renderGroups();renderKO();renderRanking();renderScorers();updateGBD();}
+function renderSidebar(){
+  const sidebar=document.getElementById('sidebar-matches');
+  const list=document.getElementById('sidebar-list');
+  if(!sidebar||!list)return;
+
+  // Tous les matchs triés par date/heure
+  const allM=[...GM,...KMT.map(m=>{
+    const{h,a}=getKOTeams(m);
+    return{...m,h,a,isKO:true};
+  })].sort((a,b)=>mDT(a)-mDT(b));
+
+  const now=new Date();
+  // Matchs pas encore joués (résultat non saisi) et pas encore commencés
+  const upcoming=allM.filter(m=>{
+    const r=S.results[m.id];
+    const played=r&&r.h!==undefined&&r.h!=='';
+    return !played;
+  });
+
+  if(!upcoming.length){
+    sidebar.style.display='none';
+    return;
+  }
+  sidebar.style.display='block';
+
+  // Grouper par date
+  const byDate={};
+  upcoming.forEach(m=>{
+    if(!byDate[m.d])byDate[m.d]=[];
+    byDate[m.d].push(m);
+  });
+
+  list.innerHTML='';
+  let shown=0;
+  const maxDays=5; // Afficher max 5 jours à venir
+
+  Object.keys(byDate).slice(0,maxDays).forEach(date=>{
+    const dateEl=document.createElement('div');
+    dateEl.style.cssText='font-size:.7rem;font-weight:700;color:var(--gold2);text-transform:uppercase;letter-spacing:.5px;margin:.6rem 0 .3rem;padding:.2rem .4rem;background:rgba(255,165,0,.08);border-radius:4px';
+    // Format date lisible
+    const[d,mo,y]=date.split('/');
+    const dt=new Date(+y,+mo-1,+d);
+    const jours=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+    const mois=['jan','fév','mar','avr','mai','juin','juil','août','sep','oct','nov','déc'];
+    dateEl.textContent=`${jours[dt.getDay()]} ${d} ${mois[+mo-1]}`;
+    list.appendChild(dateEl);
+
+    byDate[date].forEach(m=>{
+      const lk=isLocked(m);
+      const bet=curPlayer&&S.bets[curPlayer]&&S.bets[curPlayer][m.id]?S.bets[curPlayer][m.id]:null;
+      const betSaved=bet&&(bet.h!==''||bet.a!=='');
+      const hName=m.isKO?m.h:tname(m.h);
+      const aName=m.isKO?m.a:tname(m.a);
+      const hFlag=m.isKO?(FLAGS[m.h]||'🏳️'):(flag(m.h)||'🏳️');
+      const aFlag=m.isKO?(FLAGS[m.a]||'🏳️'):(flag(m.a)||'🏳️');
+
+      const item=document.createElement('div');
+      item.style.cssText=`background:var(--card);border:1px solid ${lk?'var(--card2)':betSaved?'rgba(34,197,94,.3)':'rgba(255,215,0,.15)'};border-radius:8px;padding:.45rem .5rem;margin-bottom:.35rem;cursor:pointer;transition:border-color .2s`;
+      item.innerHTML=`
+        <div style="font-size:.68rem;color:var(--muted);margin-bottom:.25rem;display:flex;justify-content:space-between;align-items:center">
+          <span>🕐 ${m.t}</span>
+          ${lk?'<span style="font-size:.6rem;color:#f87171">🔒</span>':betSaved?'<span style="font-size:.6rem;color:var(--green)">✔</span>':'<span style="font-size:.6rem;color:#60a5fa">🔓</span>'}
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:.3rem">
+          <div style="display:flex;flex-direction:column;align-items:center;flex:1;gap:.1rem">
+            <span style="font-size:1rem">${hFlag}</span>
+            <span style="font-size:.62rem;font-weight:700;text-align:center;line-height:1.2;color:${lk?'var(--muted)':'var(--text)'}">${hName.length>8?hName.slice(0,8)+'…':hName}</span>
+          </div>
+          <div style="font-size:.7rem;color:var(--muted);font-weight:700">VS</div>
+          <div style="display:flex;flex-direction:column;align-items:center;flex:1;gap:.1rem">
+            <span style="font-size:1rem">${aFlag}</span>
+            <span style="font-size:.62rem;font-weight:700;text-align:center;line-height:1.2;color:${lk?'var(--muted)':'var(--text)'}">${aName.length>8?aName.slice(0,8)+'…':aName}</span>
+          </div>
+        </div>
+        ${betSaved?`<div style="text-align:center;font-size:.62rem;color:var(--green);margin-top:.2rem">Parié : ${bet.h||'0'}-${bet.a||'0'}</div>`:''}
+      `;
+      // Clic → scroller vers le match dans la page
+      item.addEventListener('click',()=>{
+        const matchCard=document.querySelector(`[data-id="${m.id}"]`);
+        if(matchCard){
+          matchCard.closest('.mc,.km')?.scrollIntoView({behavior:'smooth',block:'center'});
+        }
+      });
+      list.appendChild(item);
+      shown++;
+    });
+  });
+
+  // Si tous les matchs sont joués
+  if(shown===0)sidebar.style.display='none';
+}
+function renderAll(){renderSbar();renderSidebar();renderGroups();renderKO();renderRanking();renderScorers();updateGBD();}
 
 // ===== BOOT =====
 // Attacher tous les événements statiques
