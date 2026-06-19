@@ -384,7 +384,10 @@ function isLocked(m){
   return new Date()>=new Date(mDT(m)-60000);
 }
 function calcPts(bet,res){
-  const bh=+bet.h,ba=+bet.a,rh=+res.h,ra=+res.a;
+  const bh=bet.h!==''?+bet.h:0;
+  const ba=bet.a!==''?+bet.a:0;
+  const rh=res.h!==''?+res.h:0;
+  const ra=res.a!==''?+res.a:0;
   if(isNaN(bh)||isNaN(ba)||isNaN(rh)||isNaN(ra))return 0;
   if(bh===rh&&ba===ra)return 3;
   const bR=bh>ba?'H':bh<ba?'A':'D',rR=rh>ra?'H':rh<ra?'A':'D';
@@ -556,7 +559,7 @@ function playerScore(p){
   const pb=S.bets[p]||{};const g=pb.global||{};
   [...GM,...KMT].forEach(m=>{
     const bet=pb[m.id];const res=S.results[m.id];
-    if(bet&&bet.h!==''&&bet.a!==''){nb++;
+    if(bet&&(bet.h!==''||bet.a!=='')){nb++;
       if(res&&res.h!==undefined&&res.h!==''){const p3=calcPts(bet,res);total+=p3;if(p3===3)pf++;else if(p3===1)gd++;else bd++;}}
   });
   if(S.finalResults?.winner&&g.w&&norm(g.w)===norm(S.finalResults.winner)){bonusW=6;total+=6;}
@@ -655,12 +658,14 @@ function buildMatchCard(m){
       const hi=div.querySelector(`[data-id="${m.id}"][data-side="h"]`);
       const ai=div.querySelector(`[data-id="${m.id}"][data-side="a"]`);
       if(!hi||!ai||!curPlayer)return;
-      const nb={...(S.bets[curPlayer]||{}),[m.id]:{h:hi.value,a:ai.value}};
+      const hv=hi.value!==''?hi.value:'0';
+      const av=ai.value!==''?ai.value:'0';
+      const nb={...(S.bets[curPlayer]||{}),[m.id]:{h:hv,a:av}};
       await fbSet('bets/'+curPlayer,nb);
       this.textContent='✅ Sauvé !';
       setTimeout(()=>{if(this.isConnected)this.textContent='💾 Sauvegarder';},1500);
       const ind=div.querySelector('.bet-ind');
-      if(ind&&hi.value!==''&&ai.value!=='')ind.style.display='inline-flex';
+      if(ind)ind.style.display='inline-flex';
     });
   }
   return div;
@@ -741,12 +746,14 @@ function buildKOCard(m){
     if(sb)sb.addEventListener('click',async function(){
       const hi=div.querySelector('[data-side="h"]');const ai=div.querySelector('[data-side="a"]');
       if(!hi||!ai||!curPlayer)return;
-      const nb={...(S.bets[curPlayer]||{}),[m.id]:{h:hi.value,a:ai.value}};
+      const hv=hi.value!==''?hi.value:'0';
+      const av=ai.value!==''?ai.value:'0';
+      const nb={...(S.bets[curPlayer]||{}),[m.id]:{h:hv,a:av}};
       await fbSet('bets/'+curPlayer,nb);
       this.textContent='✅ Sauvé !';
       setTimeout(()=>{if(this.isConnected)this.textContent='💾 Sauvegarder';},1500);
       const ind=div.querySelector('.bet-ind');
-      if(ind&&hi.value!==''&&ai.value!=='')ind.style.display='inline-flex';
+      if(ind)ind.style.display='inline-flex';
     });
   }
   return div;
