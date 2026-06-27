@@ -742,16 +742,17 @@ function updateBetInd(div,mid){
 }
 
 // ===== KO =====
+function sortedKMT(){return [...KMT].sort((a,b)=>mDT(a)-mDT(b));}
 function renderKO(){
   const cont=document.getElementById('kocont');cont.innerHTML='';
-  KMT.forEach(m=>{
+  sortedKMT().forEach(m=>{
     const el=buildKOCard(m);
     el.dataset.round=m.r;
     cont.appendChild(el);
   });
 }
 function buildKOCard(m){
-  const{h,a,rh,ra}=getKOTeams(m);
+  const{h,a}=getKOTeams(m);
   const r=S.results[m.id];const pl=r&&r.h!==undefined&&r.h!=='';
   const lk=isLocked(m);const p=curPlayer;
   const bet=p&&S.bets[p]&&S.bets[p][m.id]?S.bets[p][m.id]:null;
@@ -945,7 +946,7 @@ function renderAdmScores(){
   if(!adminOn)return;
   const cont=document.getElementById('admlst');if(!cont)return;
   cont.innerHTML='';
-  [...GM,...KMT].forEach(m=>{
+  [...GM,...sortedKMT()].forEach(m=>{
     const r=S.results[m.id]||{};
     const saved=r.h!==undefined&&r.h!=='';
     let lb=m.g?`[${m.g}] ${m.d} ${m.t} — ${tname(m.h)} vs ${tname(m.a)}`:`${m.lb} (${m.d} ${m.t})`;
@@ -1100,7 +1101,7 @@ function renderAdmKO(){
   cont.innerHTML='';
   const rounds={'r16':'1/16e de finale','qf':'1/8e de finale','sf':'Quart de finale','semi':'Demi-finale','fin':'Finale / Petite finale'};
   let lastRound='';
-  KMT.forEach(m=>{
+  sortedKMT().forEach(m=>{
     if(m.r!==lastRound){
       lastRound=m.r;
       const sep=document.createElement('div');
