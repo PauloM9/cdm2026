@@ -441,15 +441,31 @@ function isLocked(m){
   if(S.unlocks&&S.unlocks[m.id])return false;
   return new Date()>=new Date(mDT(m)-60000);
 }
-function calcPts(bet,res){
+function calcPts(bet,res,isKO){
   const bh=bet.h!==''?+bet.h:0;
   const ba=bet.a!==''?+bet.a:0;
   const rh=res.h!==''?+res.h:0;
   const ra=res.a!==''?+res.a:0;
   if(isNaN(bh)||isNaN(ba)||isNaN(rh)||isNaN(ra))return 0;
-  if(bh===rh&&ba===ra)return 3;
-  const bR=bh>ba?'H':bh<ba?'A':'D',rR=rh>ra?'H':rh<ra?'A':'D';
-  return bR===rR?1:0;
+
+  if(!isKO){
+    // Phase de groupes : barème classique
+    if(bh===rh&&ba===ra)return 3;
+    const bR=bh>ba?'H':bh<ba?'A':'D',rR=rh>ra?'H':rh<ra?'A':'D';
+    return bR===rR?1:0;
+  }
+
+  // Phase éliminatoire : barème spécial
+  // res.winner = 'h' ou 'a' (vainqueur final, y compris tirs au but)
+  const winner=res.winner||null; // 'h' ou 'a'
+  const exactScore=(bh===rh&&ba===ra);
+  const betWinner=bet.winner||null; // 'h' ou 'a' parié par le joueur
+  const goodWinner=winner&&betWinner&&winner===betWinner;
+
+  if(exactScore&&goodWinner)return 3;   // Score exact + bon qualifié
+  if(exactScore&&!goodWinner&&winner)return 2; // Score exact + mauvais qualifié
+  if(goodWinner)return 1;               // Bon qualifié seulement
+  return 0;
 }
 function simpleHash(s){let h=0;for(let i=0;i<s.length;i++){h=Math.imul(31,h)+s.charCodeAt(i)|0;}return h.toString(36);}
 function getComment(pname,pos){
@@ -626,9 +642,10 @@ function playerScore(p){
   let total=0,nb=0,pf=0,gd=0,bd=0,bonusW=0,bonusS=0;
   const pb=S.bets[p]||{};const g=pb.global||{};
   [...GM,...KMT].forEach(m=>{
+    const isKO=!m.g;
     const bet=pb[m.id];const res=S.results[m.id];
     if(bet&&(bet.h!==''||bet.a!=='')){nb++;
-      if(res&&res.h!==undefined&&res.h!==''){const p3=calcPts(bet,res);total+=p3;if(p3===3)pf++;else if(p3===1)gd++;else bd++;}}
+      if(res&&res.h!==undefined&&res.h!==''){const p3=calcPts(bet,res,isKO);total+=p3;if(p3===3)pf++;else if(p3>=1)gd++;else bd++;}}
   });
   if(S.finalResults?.winner&&g.w&&norm(g.w)===norm(S.finalResults.winner)){bonusW=6;total+=6;}
   if(S.finalResults?.scorer&&g.s&&norm(g.s)===norm(S.finalResults.scorer)){bonusS=3;total+=3;}
@@ -770,31 +787,45 @@ function buildKOCard(m){
 
   if(pl){
     let myBet='';
-    if(bet&&bet.h!==''){
-      const p3=calcPts(bet,r);
-      const pc=p3===3?'var(--gold)':p3===1?'var(--green)':'#f87171';
-      const bd2=p3===3?'<span class="rbadge pf">⭐+3pts</span>':p3===1?'<span class="rbadge gd">✅+1pt</span>':'<span class="rbadge bd">❌0pt</span>';
-      myBet=`<div style="display:flex;align-items:center;justify-content:center;gap:.4rem;margin:.3rem 0;flex-wrap:wrap"><span style="font-size:.7rem;color:var(--muted)">Mon pari:</span><span style="font-family:'Bebas Neue';font-size:1.1rem;color:${pc}">${bet.h}-${bet.a}</span>${bd2}</div>`;
+    if(bet&&(bet.h!==''||bet.a!=='')){
+      const p3=calcPts(bet,r,true);
+      const pc=p3===3?'var(--gold)':p3===2?'#a78bfa':p3===1?'var(--green)':'#f87171';
+      const bd2=p3===3?'<span class="rbadge pf">⭐ Exact+qualifié +3pts</span>':p3===2?'<span class="rbadge" style="background:rgba(167,139,250,.2);color:#a78bfa;border:1px solid #a78bfa">💜 Exact+mauvais qualifié +2pts</span>':p3===1?'<span class="rbadge gd">✅ Bon qualifié +1pt</span>':'<span class="rbadge bd">❌ 0pt</span>';
+      const betWL=bet.winner?(bet.winner==='h'?h:a):'—';
+      myBet=`<div style="display:flex;align-items:center;justify-content:center;gap:.4rem;margin:.3rem 0;flex-wrap:wrap">
+        <span style="font-size:.7rem;color:var(--muted)">Mon pari:</span>
+        <span style="font-family:'Bebas Neue';font-size:1.1rem;color:${pc}">${bet.h||'0'}-${bet.a||'0'}</span>
+        <span style="font-size:.7rem;color:${bet.winner===r.winner?'var(--green)':'#f87171'}">🏆 ${betWL}</span>
+        ${bd2}</div>`;
     } else {
       myBet='<div style="text-align:center;font-size:.7rem;color:var(--muted);margin:.25rem 0;font-style:italic">— Non parié</div>';
     }
-    const pwb=S.players.filter(pl2=>S.bets[pl2]&&S.bets[pl2][m.id]&&S.bets[pl2][m.id].h!=='');
-    const pnb=S.players.filter(pl2=>!S.bets[pl2]||!S.bets[pl2][m.id]||S.bets[pl2][m.id].h==='');
+    const realW=r.winner?(r.winner==='h'?h:a):'';
+    const pwb=S.players.filter(pl2=>S.bets[pl2]&&S.bets[pl2][m.id]&&(S.bets[pl2][m.id].h!==''||S.bets[pl2][m.id].a!==''));
+    const pnb=S.players.filter(pl2=>!S.bets[pl2]||!S.bets[pl2][m.id]||(S.bets[pl2][m.id].h===''&&S.bets[pl2][m.id].a===''));
     const rows=pwb.map(pl2=>{
-      const b=S.bets[pl2][m.id];const p3=calcPts(b,r);const isCur=pl2===p;
-      const pc2=p3===3?'var(--gold)':p3===1?'var(--green)':'#f87171';
-      const bg=p3===3?'rgba(255,215,0,.12)':p3===1?'rgba(34,197,94,.08)':'rgba(239,68,68,.06)';
-      return`<tr style="background:${bg}${isCur?';outline:1px solid var(--gold)':''}"><td style="padding:.25rem .4rem;font-size:.76rem;font-weight:${isCur?900:600};color:${isCur?'var(--gold)':'var(--text)'}">${pl2}${isCur?' 👤':''}</td><td style="padding:.25rem .4rem;text-align:center;font-family:'Bebas Neue';color:${pc2}">${b.h}-${b.a}</td><td style="padding:.25rem .4rem;font-weight:900;color:${pc2}">+${p3}pt${p3>1?'s':''}</td></tr>`;
-    }).join('')+pnb.map(pl2=>`<tr><td style="padding:.25rem .4rem;font-size:.72rem;color:var(--muted)">${pl2}</td><td style="padding:.25rem .4rem;text-align:center;color:var(--muted)">—</td><td style="padding:.25rem .4rem;color:var(--muted)">0pt</td></tr>`).join('');
-    const comp=S.players.length?`<details><summary style="font-size:.7rem;color:var(--gold);font-weight:700;padding:.25rem .4rem;background:rgba(255,215,0,.06);border-radius:6px">👥 Paris de tous (${pwb.length}/${S.players.length})</summary><table style="width:100%;border-collapse:collapse;margin-top:.3rem"><tbody>${rows}</tbody></table></details>`:'';
+      const b=S.bets[pl2][m.id];const p3=calcPts(b,r,true);const isCur=pl2===p;
+      const pc2=p3===3?'var(--gold)':p3===2?'#a78bfa':p3===1?'var(--green)':'#f87171';
+      const bg=p3===3?'rgba(255,215,0,.12)':p3===2?'rgba(167,139,250,.1)':p3===1?'rgba(34,197,94,.08)':'rgba(239,68,68,.06)';
+      const wl=b.winner?(b.winner==='h'?h:a):'—';
+      return`<tr style="background:${bg}${isCur?';outline:1px solid var(--gold)':''}">
+        <td style="padding:.25rem .4rem;font-size:.76rem;font-weight:${isCur?900:600};color:${isCur?'var(--gold)':'var(--text)'}">${pl2}${isCur?' 👤':''}</td>
+        <td style="padding:.25rem .4rem;text-align:center;font-family:'Bebas Neue';color:${pc2}">${b.h||'0'}-${b.a||'0'}</td>
+        <td style="padding:.25rem .4rem;font-size:.7rem;color:${b.winner===r.winner?'var(--green)':'#f87171'}">🏆 ${wl}</td>
+        <td style="padding:.25rem .4rem;font-weight:900;color:${pc2}">+${p3}pt${p3>1?'s':''}</td>
+      </tr>`;
+    }).join('')+pnb.map(pl2=>`<tr><td style="padding:.25rem .4rem;font-size:.72rem;color:var(--muted)">${pl2}</td><td colspan="2" style="padding:.25rem .4rem;text-align:center;color:var(--muted)">—</td><td style="padding:.25rem .4rem;color:var(--muted)">0pt</td></tr>`).join('');
+    const comp=S.players.length?`<details><summary style="font-size:.7rem;color:var(--gold);font-weight:700;padding:.25rem .4rem;background:rgba(255,215,0,.06);border-radius:6px">👥 Paris de tous (${pwb.length}/${S.players.length})</summary><table style="width:100%;border-collapse:collapse;margin-top:.3rem"><thead><tr style="background:var(--dark2)"><th style="padding:.2rem .4rem;font-size:.65rem;color:var(--muted);text-align:left">Joueur</th><th style="padding:.2rem .4rem;font-size:.65rem;color:var(--muted)">Score</th><th style="padding:.2rem .4rem;font-size:.65rem;color:var(--muted)">Qualifié</th><th style="padding:.2rem .4rem;font-size:.65rem;color:var(--muted)">Pts</th></tr></thead><tbody>${rows}</tbody></table></details>`:'';
     div.innerHTML=`<div class="kround">${m.lb}</div>
       <div style="font-size:.62rem;color:var(--muted);margin-bottom:.28rem">📅 ${displayD} ${displayT}</div>
       <div class="mteams"><div class="tside"><div style="font-size:.73rem;font-weight:700;text-align:center">${h}</div></div>
         <div class="vsb"><div class="rscore">${r.h} - ${r.a}</div><div class="vstxt">RÉSULTAT</div></div>
       <div class="tside"><div style="font-size:.73rem;font-weight:700;text-align:center">${a}</div></div></div>
+      ${realW?`<div style="text-align:center;font-size:.75rem;color:var(--gold);font-weight:700;margin:.3rem 0">🏆 Qualifié : ${realW}</div>`:''}
       ${myBet}${comp}`;
   } else {
     const betSaved=!lk&&bet&&(bet.h!==''||bet.a!=='');
+    const betWinner=bet?bet.winner||'':'' ;
     div.innerHTML=`<div class="kround">${m.lb}</div>
       <div style="font-size:.62rem;color:var(--muted);margin-bottom:.25rem;display:flex;align-items:center;gap:.4rem">
         📅 ${displayD} ${displayT}
@@ -809,19 +840,42 @@ function buildKOCard(m){
         </div><div class="vstxt">VS</div></div>
         <div class="tside"><div style="font-size:.72rem;font-weight:700;text-align:center;line-height:1.3;color:${isTbd?'var(--muted)':'var(--text)'}">${a}</div></div>
       </div>
-      ${!lk&&p?`<button class="savbtn">💾 Sauvegarder</button>`:''}
-      ${lk&&S.players.length>0?`<div class="betsrow">${S.players.map(pl2=>{const b=S.bets[pl2]&&S.bets[pl2][m.id]?S.bets[pl2][m.id]:null;return`<span style="font-size:.64rem;${pl2===p?'color:var(--gold);font-weight:700':''}">${pl2}: ${b&&(b.h!==''||b.a!=='')?((b.h||'0')+'-'+(b.a||'0')):'—'}</span>`;}).join(' ')}</div>`:''}`;
+      ${!lk&&p&&!isTbd?`
+      <div style="margin-top:.5rem;background:rgba(255,215,0,.05);border:1px solid rgba(255,215,0,.2);border-radius:8px;padding:.4rem .6rem">
+        <div style="font-size:.68rem;color:var(--gold);font-weight:700;margin-bottom:.3rem">🏆 Équipe qualifiée :</div>
+        <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:.3rem;cursor:pointer;font-size:.75rem;padding:.25rem .5rem;border-radius:6px;border:1px solid ${betWinner==='h'?'var(--gold)':'var(--card2)'};background:${betWinner==='h'?'rgba(255,215,0,.15)':'var(--dark2)'}">
+            <input type="radio" name="winner-${m.id}" value="h" class="bet-winner-radio" ${betWinner==='h'?'checked':''} style="accent-color:var(--gold)"> ${h}
+          </label>
+          <label style="display:flex;align-items:center;gap:.3rem;cursor:pointer;font-size:.75rem;padding:.25rem .5rem;border-radius:6px;border:1px solid ${betWinner==='a'?'var(--gold)':'var(--card2)'};background:${betWinner==='a'?'rgba(255,215,0,.15)':'var(--dark2)'}">
+            <input type="radio" name="winner-${m.id}" value="a" class="bet-winner-radio" ${betWinner==='a'?'checked':''} style="accent-color:var(--gold)"> ${a}
+          </label>
+        </div>
+      </div>`:''}
+      ${!lk&&p?`<button class="savbtn" style="margin-top:.4rem">💾 Sauvegarder</button>`:''}
+      ${lk&&S.players.length>0?`<div class="betsrow">${S.players.map(pl2=>{const b=S.bets[pl2]&&S.bets[pl2][m.id]?S.bets[pl2][m.id]:null;const wLabel=b&&b.winner?(b.winner==='h'?h:a):'';return`<span style="font-size:.64rem;${pl2===p?'color:var(--gold);font-weight:700':''}">${pl2}: ${b&&(b.h!==''||b.a!=='')?((b.h||'0')+'-'+(b.a||'0')+(wLabel?` (${wLabel})`:'')):'—'}</span>`;}).join(' ')}</div>`:''}`;
     div.querySelectorAll('.sinp').forEach(inp=>{
       inp.addEventListener('input',function(){this.value=this.value.replace(/[^0-9]/g,'').slice(0,2);});
       inp.addEventListener('change',()=>{const ind=div.querySelector('.bet-ind');if(ind)ind.style.display='none';});
     });
+    // Style radio buttons on change
+    div.querySelectorAll('.bet-winner-radio').forEach(radio=>{
+      radio.addEventListener('change',function(){
+        div.querySelectorAll('label').forEach(l=>l.style.cssText=l.style.cssText.replace(/border:[^;]+/,'border:1px solid var(--card2)').replace(/background:[^;]+/,'background:var(--dark2)'));
+        const lbl=this.closest('label');
+        if(lbl){lbl.style.border='1px solid var(--gold)';lbl.style.background='rgba(255,215,0,.15)';}
+        const ind=div.querySelector('.bet-ind');if(ind)ind.style.display='none';
+      });
+    });
     const sb=div.querySelector('.savbtn');
     if(sb)sb.addEventListener('click',async function(){
       const hi=div.querySelector('[data-side="h"]');const ai=div.querySelector('[data-side="a"]');
+      const wr=div.querySelector('.bet-winner-radio:checked');
       if(!hi||!ai||!curPlayer)return;
       const hv=hi.value!==''?hi.value:'0';
       const av=ai.value!==''?ai.value:'0';
-      const nb={...(S.bets[curPlayer]||{}),[m.id]:{h:hv,a:av}};
+      const wv=wr?wr.value:'';
+      const nb={...(S.bets[curPlayer]||{}),[m.id]:{h:hv,a:av,winner:wv}};
       await fbSet('bets/'+curPlayer,nb);
       this.textContent='✅ Sauvé !';
       setTimeout(()=>{if(this.isConnected)this.textContent='💾 Sauvegarder';},1500);
@@ -958,41 +1012,53 @@ function renderAdmScores(){
   [...GM,...sortedKMT()].forEach(m=>{
     const r=S.results[m.id]||{};
     const saved=r.h!==undefined&&r.h!=='';
+    const isKO=!m.g;
+    const ko=isKO?getKOTeams(m):{};
     let lb=m.g?`[${m.g}] ${m.d} ${m.t} — ${tname(m.h)} vs ${tname(m.a)}`:`${m.lb} (${m.d} ${m.t})`;
-    if(!m.g){const{h,a}=getKOTeams(m);lb=`${m.lb} — ${h} vs ${a} (${m.d} ${m.t})`;}
+    if(isKO){lb=`${m.lb} — ${ko.h} vs ${ko.a} (${m.d} ${m.t})`;}
     const div=document.createElement('div');div.className='adm-match';
     const isLk=isLocked(m)&&!S.unlocks[m.id];
     const unlocked=!!S.unlocks[m.id];
+    const savedWinner=r.winner||'';
     div.innerHTML=`
-      <div class="adm-match-lbl">${lb}${unlocked?'<span style="color:var(--green);font-size:.72rem;margin-left:.4rem">🔓 Débloqué manuellement</span>':''}</div>
+      <div class="adm-match-lbl">${lb}${unlocked?'<span style="color:var(--green);font-size:.72rem;margin-left:.4rem">🔓 Débloqué</span>':''}</div>
       <div class="adm-score-wrap">
         <input class="aisc" type="text" inputmode="numeric" placeholder="0" value="${saved?r.h:''}" maxlength="2">
         <span style="font-family:'Bebas Neue';font-size:1.1rem;color:var(--muted)"> - </span>
         <input class="aisc" type="text" inputmode="numeric" placeholder="0" value="${saved?r.a:''}" maxlength="2">
       </div>
+      ${isKO?`<div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;font-size:.78rem">
+        <span style="color:var(--gold);font-weight:700">🏆 Qualifié :</span>
+        <label style="display:flex;align-items:center;gap:.2rem;cursor:pointer">
+          <input type="radio" name="adm-winner-${m.id}" value="h" class="adm-winner-radio" ${savedWinner==='h'?'checked':''} style="accent-color:var(--gold)">
+          <span>${ko.h||'Équipe 1'}</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:.2rem;cursor:pointer">
+          <input type="radio" name="adm-winner-${m.id}" value="a" class="adm-winner-radio" ${savedWinner==='a'?'checked':''} style="accent-color:var(--gold)">
+          <span>${ko.a||'Équipe 2'}</span>
+        </label>
+      </div>`:''}
       <input class="absc" type="text" placeholder="Buteurs: Mbappé|FRA, Vinicius|BRE" value="${r.sr||''}">
       <button class="btn sm btn-save-score">✅ Valider</button>
       ${isLk&&!unlocked?`<button class="btn sm blue btn-unlock">🔓 Débloquer</button>`:''}
       ${unlocked?`<button class="btn sm btn-relock" style="background:linear-gradient(135deg,#7d3c98,#5b2c6f);color:#fff">🔒 Rebloquer</button>`:''}
-      <span class="adm-save-ok" style="color:var(--green);font-size:.72rem">${saved?`✅ ${r.h}-${r.a}`:''}</span>`;
+      <span class="adm-save-ok" style="color:var(--green);font-size:.72rem">${saved?`✅ ${r.h}-${r.a}${r.winner?' ('+( r.winner==='h'?ko.h:ko.a)+')':''}`:''}</span>`;
     const inputs=div.querySelectorAll('.aisc');
     inputs.forEach(inp=>inp.addEventListener('input',function(){this.value=this.value.replace(/[^0-9]/g,'').slice(0,2);}));
     div.querySelector('.btn-save-score').addEventListener('click',async function(){
       const h=inputs[0].value.trim();const a=inputs[1].value.trim();
       const sr=div.querySelector('.absc').value.trim();
       const sc=sr?sr.split(',').map(s=>s.trim()).filter(Boolean):[];
-      await fbSet('results/'+m.id,{h,a,sc,sr});
+      const wr=isKO?div.querySelector('.adm-winner-radio:checked'):null;
+      const winner=wr?wr.value:'';
+      await fbSet('results/'+m.id,{h,a,sc,sr,winner});
       const ok=div.querySelector('.adm-save-ok');
-      if(ok){ok.style.color='var(--green)';ok.textContent=`✅ ${h}-${a} sauvegardé !`;}
+      if(ok){ok.style.color='var(--green)';ok.textContent=`✅ ${h}-${a}${winner?' (qualifié: '+(winner==='h'?ko.h||'Éq.1':ko.a||'Éq.2')+')':''} sauvegardé !`;}
     });
     const btnUnlock=div.querySelector('.btn-unlock');
-    if(btnUnlock)btnUnlock.addEventListener('click',async function(){
-      await fbSet('unlocks/'+m.id,true);
-    });
+    if(btnUnlock)btnUnlock.addEventListener('click',async()=>await fbSet('unlocks/'+m.id,true));
     const btnRelock=div.querySelector('.btn-relock');
-    if(btnRelock)btnRelock.addEventListener('click',async function(){
-      await fbSet('unlocks/'+m.id,null);
-    });
+    if(btnRelock)btnRelock.addEventListener('click',async()=>await fbSet('unlocks/'+m.id,null));
     cont.appendChild(div);
   });
 }
