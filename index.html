@@ -328,6 +328,12 @@ details>summary::-webkit-details-marker{display:none}
           <span id="final-ok" class="saved-ok">✅ Sauvegardé !</span>
         </div>
       </div>
+      <!-- Équipes phase éliminatoire -->
+      <div class="adm-section">
+        <h3>⚡ Définir les équipes de la phase éliminatoire</h3>
+        <p style="font-size:.78rem;color:var(--muted);margin-bottom:.8rem">Saisis les équipes pour chaque match. Laisse vide pour afficher "À définir".</p>
+        <div id="adm-ko-teams"></div>
+      </div>
       <!-- Ajustements manuels -->
       <div class="adm-section">
         <h3>⚖️ Ajustements manuels de points</h3>
@@ -373,23 +379,39 @@ const ALL_COMMENTS = {
 const GROUPS={A:{teams:['🇲🇽 Mexique','🇿🇦 Afrique du Sud','🇰🇷 Corée du Sud','🇨🇿 Rép. Tchèque']},B:{teams:['🇨🇦 Canada','🇧🇦 Bosnie-Herzégovine','🇶🇦 Qatar','🇨🇭 Suisse']},C:{teams:['🇧🇷 Brésil','🇲🇦 Maroc','🇭🇹 Haïti','🏴󠁧󠁢󠁳󠁣󠁴󠁿 Écosse']},D:{teams:['🇺🇸 États-Unis','🇵🇾 Paraguay','🇦🇺 Australie','🇹🇷 Turquie']},E:{teams:['🇩🇪 Allemagne','🇨🇼 Curaçao',"🇨🇮 Côte d'Ivoire",'🇪🇨 Équateur']},F:{teams:['🇳🇱 Pays-Bas','🇯🇵 Japon','🇸🇪 Suède','🇹🇳 Tunisie']},G:{teams:['🇧🇪 Belgique','🇪🇬 Égypte','🇮🇷 Iran','🇳🇿 Nouvelle-Zélande']},H:{teams:['🇪🇸 Espagne','🇨🇻 Cap-Vert','🇸🇦 Arabie saoudite','🇺🇾 Uruguay']},I:{teams:['🇫🇷 France','🇸🇳 Sénégal','🇮🇶 Irak','🇳🇴 Norvège']},J:{teams:['🇦🇷 Argentine','🇦🇹 Autriche','🇩🇿 Algérie','🇯🇴 Jordanie']},K:{teams:['🇵🇹 Portugal','🇨🇩 RD Congo','🇺🇿 Ouzbékistan','🇨🇴 Colombie']},L:{teams:['🏴󠁧󠁢󠁥󠁮󠁧󠁿 Angleterre','🇭🇷 Croatie','🇬🇭 Ghana','🇵🇦 Panama']}};
 const GM=[{id:'A1',g:'A',h:'🇲🇽 Mexique',a:'🇿🇦 Afrique du Sud',d:'11/06/2026',t:'21:00',v:'Azteca, Mexico'},{id:'A2',g:'A',h:'🇰🇷 Corée du Sud',a:'🇨🇿 Rép. Tchèque',d:'12/06/2026',t:'04:00',v:'Guadalajara'},{id:'A3',g:'A',h:'🇨🇿 Rép. Tchèque',a:'🇿🇦 Afrique du Sud',d:'18/06/2026',t:'18:00',v:'Atlanta'},{id:'A4',g:'A',h:'🇲🇽 Mexique',a:'🇰🇷 Corée du Sud',d:'19/06/2026',t:'03:00',v:'Guadalajara'},{id:'A5',g:'A',h:'🇨🇿 Rép. Tchèque',a:'🇲🇽 Mexique',d:'25/06/2026',t:'03:00',v:'Azteca, Mexico'},{id:'A6',g:'A',h:'🇿🇦 Afrique du Sud',a:'🇰🇷 Corée du Sud',d:'25/06/2026',t:'03:00',v:'Monterrey'},{id:'B1',g:'B',h:'🇨🇦 Canada',a:'🇧🇦 Bosnie-Herzégovine',d:'12/06/2026',t:'21:00',v:'Toronto'},{id:'B2',g:'B',h:'🇶🇦 Qatar',a:'🇨🇭 Suisse',d:'13/06/2026',t:'21:00',v:'San Francisco'},{id:'B3',g:'B',h:'🇨🇭 Suisse',a:'🇧🇦 Bosnie-Herzégovine',d:'18/06/2026',t:'21:00',v:'Los Angeles'},{id:'B4',g:'B',h:'🇨🇦 Canada',a:'🇶🇦 Qatar',d:'18/06/2026',t:'00:00',v:'Vancouver'},{id:'B5',g:'B',h:'🇨🇭 Suisse',a:'🇨🇦 Canada',d:'24/06/2026',t:'21:00',v:'Vancouver'},{id:'B6',g:'B',h:'🇧🇦 Bosnie-Herzégovine',a:'🇶🇦 Qatar',d:'24/06/2026',t:'21:00',v:'Seattle'},{id:'C1',g:'C',h:'🇧🇷 Brésil',a:'🇲🇦 Maroc',d:'13/06/2026',t:'00:00',v:'New York'},{id:'C2',g:'C',h:'🇭🇹 Haïti',a:'🏴󠁧󠁢󠁳󠁣󠁴󠁿 Écosse',d:'14/06/2026',t:'03:00',v:'Boston'},{id:'C3',g:'C',h:'🏴󠁧󠁢󠁳󠁣󠁴󠁿 Écosse',a:'🇲🇦 Maroc',d:'19/06/2026',t:'00:00',v:'Boston'},{id:'C4',g:'C',h:'🇧🇷 Brésil',a:'🇭🇹 Haïti',d:'20/06/2026',t:'03:00',v:'Philadelphie'},{id:'C5',g:'C',h:'🏴󠁧󠁢󠁳󠁣󠁴󠁿 Écosse',a:'🇧🇷 Brésil',d:'24/06/2026',t:'00:00',v:'Miami'},{id:'C6',g:'C',h:'🇲🇦 Maroc',a:'🇭🇹 Haïti',d:'24/06/2026',t:'00:00',v:'Atlanta'},{id:'D1',g:'D',h:'🇺🇸 États-Unis',a:'🇵🇾 Paraguay',d:'13/06/2026',t:'03:00',v:'Los Angeles'},{id:'D2',g:'D',h:'🇦🇺 Australie',a:'🇹🇷 Turquie',d:'14/06/2026',t:'06:00',v:'Vancouver'},{id:'D3',g:'D',h:'🇹🇷 Turquie',a:'🇵🇾 Paraguay',d:'20/06/2026',t:'06:00',v:'San Francisco'},{id:'D4',g:'D',h:'🇺🇸 États-Unis',a:'🇦🇺 Australie',d:'19/06/2026',t:'21:00',v:'Seattle'},{id:'D5',g:'D',h:'🇹🇷 Turquie',a:'🇺🇸 États-Unis',d:'26/06/2026',t:'04:00',v:'Los Angeles'},{id:'D6',g:'D',h:'🇵🇾 Paraguay',a:'🇦🇺 Australie',d:'26/06/2026',t:'04:00',v:'San Francisco'},{id:'E1',g:'E',h:'🇩🇪 Allemagne',a:'🇨🇼 Curaçao',d:'14/06/2026',t:'19:00',v:'Houston'},{id:'E2',g:'E',h:"🇨🇮 Côte d'Ivoire",a:'🇪🇨 Équateur',d:'15/06/2026',t:'01:00',v:'Philadelphie'},{id:'E3',g:'E',h:'🇩🇪 Allemagne',a:"🇨🇮 Côte d'Ivoire",d:'20/06/2026',t:'22:00',v:'Toronto'},{id:'E4',g:'E',h:'🇪🇨 Équateur',a:'🇨🇼 Curaçao',d:'21/06/2026',t:'02:00',v:'Kansas City'},{id:'E5',g:'E',h:'🇪🇨 Équateur',a:'🇩🇪 Allemagne',d:'25/06/2026',t:'22:00',v:'New York'},{id:'E6',g:'E',h:'🇨🇼 Curaçao',a:"🇨🇮 Côte d'Ivoire",d:'25/06/2026',t:'22:00',v:'Philadelphie'},{id:'F1',g:'F',h:'🇳🇱 Pays-Bas',a:'🇯🇵 Japon',d:'14/06/2026',t:'22:00',v:'Dallas'},{id:'F2',g:'F',h:'🇸🇪 Suède',a:'🇹🇳 Tunisie',d:'15/06/2026',t:'04:00',v:'Monterrey'},{id:'F3',g:'F',h:'🇳🇱 Pays-Bas',a:'🇸🇪 Suède',d:'20/06/2026',t:'19:00',v:'Houston'},{id:'F4',g:'F',h:'🇹🇳 Tunisie',a:'🇯🇵 Japon',d:'21/06/2026',t:'06:00',v:'Monterrey'},{id:'F5',g:'F',h:'🇯🇵 Japon',a:'🇸🇪 Suède',d:'26/06/2026',t:'01:00',v:'Kansas City'},{id:'F6',g:'F',h:'🇹🇳 Tunisie',a:'🇳🇱 Pays-Bas',d:'26/06/2026',t:'01:00',v:'Dallas'},{id:'G1',g:'G',h:'🇧🇪 Belgique',a:'🇪🇬 Égypte',d:'15/06/2026',t:'21:00',v:'Seattle'},{id:'G2',g:'G',h:'🇮🇷 Iran',a:'🇳🇿 Nouvelle-Zélande',d:'16/06/2026',t:'03:00',v:'Los Angeles'},{id:'G3',g:'G',h:'🇧🇪 Belgique',a:'🇮🇷 Iran',d:'21/06/2026',t:'21:00',v:'Los Angeles'},{id:'G4',g:'G',h:'🇳🇿 Nouvelle-Zélande',a:'🇪🇬 Égypte',d:'22/06/2026',t:'03:00',v:'Vancouver'},{id:'G5',g:'G',h:'🇳🇿 Nouvelle-Zélande',a:'🇧🇪 Belgique',d:'27/06/2026',t:'05:00',v:'Vancouver'},{id:'G6',g:'G',h:'🇪🇬 Égypte',a:'🇮🇷 Iran',d:'27/06/2026',t:'05:00',v:'Seattle'},{id:'H1',g:'H',h:'🇪🇸 Espagne',a:'🇨🇻 Cap-Vert',d:'15/06/2026',t:'18:00',v:'Atlanta'},{id:'H2',g:'H',h:'🇸🇦 Arabie saoudite',a:'🇺🇾 Uruguay',d:'16/06/2026',t:'00:00',v:'Miami'},{id:'H3',g:'H',h:'🇪🇸 Espagne',a:'🇸🇦 Arabie saoudite',d:'21/06/2026',t:'18:00',v:'Atlanta'},{id:'H4',g:'H',h:'🇺🇾 Uruguay',a:'🇨🇻 Cap-Vert',d:'22/06/2026',t:'00:00',v:'Miami'},{id:'H5',g:'H',h:'🇺🇾 Uruguay',a:'🇪🇸 Espagne',d:'27/06/2026',t:'02:00',v:'Guadalajara'},{id:'H6',g:'H',h:'🇨🇻 Cap-Vert',a:'🇸🇦 Arabie saoudite',d:'27/06/2026',t:'02:00',v:'Houston'},{id:'I1',g:'I',h:'🇫🇷 France',a:'🇸🇳 Sénégal',d:'16/06/2026',t:'21:00',v:'New York (MetLife)'},{id:'I2',g:'I',h:'🇮🇶 Irak',a:'🇳🇴 Norvège',d:'17/06/2026',t:'00:00',v:'Boston'},{id:'I3',g:'I',h:'🇫🇷 France',a:'🇮🇶 Irak',d:'22/06/2026',t:'23:00',v:'Philadelphie'},{id:'I4',g:'I',h:'🇳🇴 Norvège',a:'🇸🇳 Sénégal',d:'23/06/2026',t:'02:00',v:'New York'},{id:'I5',g:'I',h:'🇳🇴 Norvège',a:'🇫🇷 France',d:'26/06/2026',t:'21:00',v:'Boston'},{id:'I6',g:'I',h:'🇸🇳 Sénégal',a:'🇮🇶 Irak',d:'26/06/2026',t:'21:00',v:'Toronto'},{id:'J1',g:'J',h:'🇦🇹 Autriche',a:'🇯🇴 Jordanie',d:'17/06/2026',t:'06:00',v:'San Francisco'},{id:'J2',g:'J',h:'🇦🇷 Argentine',a:'🇩🇿 Algérie',d:'17/06/2026',t:'03:00',v:'Kansas City'},{id:'J3',g:'J',h:'🇦🇷 Argentine',a:'🇦🇹 Autriche',d:'22/06/2026',t:'19:00',v:'Dallas'},{id:'J4',g:'J',h:'🇯🇴 Jordanie',a:'🇩🇿 Algérie',d:'23/06/2026',t:'05:00',v:'San Francisco'},{id:'J5',g:'J',h:'🇯🇴 Jordanie',a:'🇦🇷 Argentine',d:'28/06/2026',t:'04:00',v:'Kansas City'},{id:'J6',g:'J',h:'🇩🇿 Algérie',a:'🇦🇹 Autriche',d:'28/06/2026',t:'04:00',v:'Dallas'},{id:'K1',g:'K',h:'🇵🇹 Portugal',a:'🇨🇩 RD Congo',d:'17/06/2026',t:'19:00',v:'Houston'},{id:'K2',g:'K',h:'🇺🇿 Ouzbékistan',a:'🇨🇴 Colombie',d:'18/06/2026',t:'04:00',v:'Kansas City'},{id:'K3',g:'K',h:'🇵🇹 Portugal',a:'🇺🇿 Ouzbékistan',d:'23/06/2026',t:'19:00',v:'Seattle'},{id:'K4',g:'K',h:'🇨🇴 Colombie',a:'🇨🇩 RD Congo',d:'24/06/2026',t:'04:00',v:'Dallas'},{id:'K5',g:'K',h:'🇨🇴 Colombie',a:'🇵🇹 Portugal',d:'28/06/2026',t:'01:30',v:'Miami'},{id:'K6',g:'K',h:'🇨🇩 RD Congo',a:'🇺🇿 Ouzbékistan',d:'28/06/2026',t:'01:30',v:'Los Angeles'},{id:'L1',g:'L',h:'🏴󠁧󠁢󠁥󠁮󠁧󠁿 Angleterre',a:'🇭🇷 Croatie',d:'17/06/2026',t:'22:00',v:'Houston'},{id:'L2',g:'L',h:'🇬🇭 Ghana',a:'🇵🇦 Panama',d:'18/06/2026',t:'01:00',v:'Kansas City'},{id:'L3',g:'L',h:'🏴󠁧󠁢󠁥󠁮󠁧󠁿 Angleterre',a:'🇬🇭 Ghana',d:'23/06/2026',t:'22:00',v:'Miami'},{id:'L4',g:'L',h:'🇵🇦 Panama',a:'🇭🇷 Croatie',d:'24/06/2026',t:'01:00',v:'Seattle'},{id:'L5',g:'L',h:'🇵🇦 Panama',a:'🏴󠁧󠁢󠁥󠁮󠁧󠁿 Angleterre',d:'27/06/2026',t:'23:00',v:'Dallas'},{id:'L6',g:'L',h:'🇭🇷 Croatie',a:'🇬🇭 Ghana',d:'27/06/2026',t:'23:00',v:'Toronto'}];
 const KMT=[
-  {id:'R1',r:'r16',lb:'1/16e — Allemagne vs Paraguay',d:'29/06/2026',t:'22:30',slot1:{type:'fixed',name:'🇩🇪 Allemagne'},slot2:{type:'fixed',name:'🇵🇾 Paraguay'}},
-  {id:'R2',r:'r16',lb:'1/16e — Brésil vs Japon',d:'29/06/2026',t:'19:00',slot1:{type:'fixed',name:'🇧🇷 Brésil'},slot2:{type:'fixed',name:'🇯🇵 Japon'}},
-  {id:'R3',r:'r16',lb:'1/16e — Afrique du Sud vs Canada',d:'29/06/2026',t:'21:00',slot1:{type:'fixed',name:'🇿🇦 Afrique du Sud'},slot2:{type:'fixed',name:'🇨🇦 Canada'}},
-  {id:'R4',r:'r16',lb:'1/16e — France vs Suède',d:'30/06/2026',t:'23:00',slot1:{type:'fixed',name:'🇫🇷 France'},slot2:{type:'fixed',name:'🇸🇪 Suède'}},
-  {id:'R5',r:'r16',lb:'1/16e — Pays-Bas vs Maroc',d:'30/06/2026',t:'03:00',slot1:{type:'fixed',name:'🇳🇱 Pays-Bas'},slot2:{type:'fixed',name:'🇲🇦 Maroc'}},
-  {id:'R6',r:'r16',lb:"1/16e — Côte d'Ivoire vs Norvège",d:'30/06/2026',t:'19:00',slot1:{type:'fixed',name:"🇨🇮 Côte d'Ivoire"},slot2:{type:'fixed',name:'🇳🇴 Norvège'}},
-  {id:'R7',r:'r16',lb:'1/16e — Mexique vs À définir',d:'01/07/2026',t:'03:00',slot1:{type:'fixed',name:'🇲🇽 Mexique'},slot2:{type:'best3',idx:4}},
-  {id:'R8',r:'r16',lb:'1/16e — À définir vs À définir',d:'01/07/2026',t:'18:00',slot1:{type:'second',grp:'B'},slot2:{type:'second',grp:'F'}},
-  {id:'R9',r:'r16',lb:'1/16e — À définir vs À définir',d:'03/07/2026',t:'01:00',slot1:{type:'second',grp:'K'},slot2:{type:'second',grp:'L'}},
-  {id:'R10',r:'r16',lb:'1/16e — Espagne vs À définir',d:'02/07/2026',t:'21:00',slot1:{type:'fixed',name:'🇪🇸 Espagne'},slot2:{type:'best3',idx:5}},
-  {id:'R11',r:'r16',lb:'1/16e — États-Unis vs Bosnie-Herzégovine',d:'02/07/2026',t:'02:00',slot1:{type:'fixed',name:'🇺🇸 États-Unis'},slot2:{type:'fixed',name:'🇧🇦 Bosnie-Herzégovine'}},
-  {id:'R12',r:'r16',lb:'1/16e — Belgique vs À définir',d:'01/07/2026',t:'22:00',slot1:{type:'fixed',name:'🇧🇪 Belgique'},slot2:{type:'best3',idx:6}},
-  {id:'R13',r:'r16',lb:'1/16e — Suisse vs À définir',d:'03/07/2026',t:'05:00',slot1:{type:'fixed',name:'🇨🇭 Suisse'},slot2:{type:'second',grp:'K'}},
-  {id:'R14',r:'r16',lb:'1/16e — À définir vs À définir',d:'04/07/2026',t:'03:30',slot1:{type:'first',grp:'K'},slot2:{type:'second',grp:'L'}},
-  {id:'R15',r:'r16',lb:'1/16e — Argentine vs Cap-Vert',d:'04/07/2026',t:'00:00',slot1:{type:'fixed',name:'🇦🇷 Argentine'},slot2:{type:'fixed',name:'🇨🇻 Cap-Vert'}},
-  {id:'R16',r:'r16',lb:'1/16e — Australie vs Égypte',d:'03/07/2026',t:'20:00',slot1:{type:'fixed',name:'🇦🇺 Australie'},slot2:{type:'fixed',name:'🇪🇬 Égypte'}},
-  {id:'Q1',r:'qf',lb:'1/8e #1',d:'04/07/2026',t:'23:00',slot1:{type:'winner',mid:'R1'},slot2:{type:'winner',mid:'R2'}},{id:'Q2',r:'qf',lb:'1/8e #2',d:'04/07/2026',t:'19:00',slot1:{type:'winner',mid:'R3'},slot2:{type:'winner',mid:'R4'}},{id:'Q3',r:'qf',lb:'1/8e #3',d:'06/07/2026',t:'21:00',slot1:{type:'winner',mid:'R5'},slot2:{type:'winner',mid:'R6'}},{id:'Q4',r:'qf',lb:'1/8e #4',d:'07/07/2026',t:'02:00',slot1:{type:'winner',mid:'R7'},slot2:{type:'winner',mid:'R8'}},{id:'Q5',r:'qf',lb:'1/8e #5',d:'05/07/2026',t:'22:00',slot1:{type:'winner',mid:'R9'},slot2:{type:'winner',mid:'R10'}},{id:'Q6',r:'qf',lb:'1/8e #6',d:'06/07/2026',t:'02:00',slot1:{type:'winner',mid:'R11'},slot2:{type:'winner',mid:'R12'}},{id:'Q7',r:'qf',lb:'1/8e #7',d:'07/07/2026',t:'22:00',slot1:{type:'winner',mid:'R13'},slot2:{type:'winner',mid:'R14'}},{id:'Q8',r:'qf',lb:'1/8e #8',d:'07/07/2026',t:'18:00',slot1:{type:'winner',mid:'R15'},slot2:{type:'winner',mid:'R16'}},{id:'S1',r:'sf',lb:'Quart de finale #1',d:'09/07/2026',t:'22:00',slot1:{type:'winner',mid:'Q1'},slot2:{type:'winner',mid:'Q2'}},{id:'S2',r:'sf',lb:'Quart de finale #2',d:'10/07/2026',t:'21:00',slot1:{type:'winner',mid:'Q3'},slot2:{type:'winner',mid:'Q4'}},{id:'S3',r:'sf',lb:'Quart de finale #3',d:'11/07/2026',t:'23:00',slot1:{type:'winner',mid:'Q5'},slot2:{type:'winner',mid:'Q6'}},{id:'S4',r:'sf',lb:'Quart de finale #4',d:'12/07/2026',t:'03:00',slot1:{type:'winner',mid:'Q7'},slot2:{type:'winner',mid:'Q8'}},{id:'SF1',r:'semi',lb:'Demi-finale 1',d:'14/07/2026',t:'21:00',slot1:{type:'winner',mid:'S1'},slot2:{type:'winner',mid:'S2'}},{id:'SF2',r:'semi',lb:'Demi-finale 2',d:'15/07/2026',t:'21:00',slot1:{type:'winner',mid:'S3'},slot2:{type:'winner',mid:'S4'}},{id:'TP',r:'fin',lb:'🥉 Petite Finale',d:'18/07/2026',t:'23:00',slot1:{type:'loser',mid:'SF1'},slot2:{type:'loser',mid:'SF2'}},{id:'FIN',r:'fin',lb:'🏆 FINALE',d:'19/07/2026',t:'21:00',slot1:{type:'winner',mid:'SF1'},slot2:{type:'winner',mid:'SF2'}}];
+  {id:'R1',r:'r16',lb:'1/16e de finale',d:'29/06/2026',t:'22:30',slot1:{type:'fixed',name:'🇩🇪 Allemagne'},slot2:{type:'fixed',name:'🇵🇾 Paraguay'}},
+  {id:'R2',r:'r16',lb:'1/16e de finale',d:'29/06/2026',t:'19:00',slot1:{type:'fixed',name:'🇧🇷 Brésil'},slot2:{type:'fixed',name:'🇯🇵 Japon'}},
+  {id:'R3',r:'r16',lb:'1/16e de finale',d:'28/06/2026',t:'21:00',slot1:{type:'fixed',name:'🇿🇦 Afrique du Sud'},slot2:{type:'fixed',name:'🇨🇦 Canada'}},
+  {id:'R4',r:'r16',lb:'1/16e de finale',d:'30/06/2026',t:'23:00',slot1:{type:'fixed',name:'🇫🇷 France'},slot2:{type:'fixed',name:'🇸🇪 Suède'}},
+  {id:'R5',r:'r16',lb:'1/16e de finale',d:'30/06/2026',t:'03:00',slot1:{type:'fixed',name:'🇳🇱 Pays-Bas'},slot2:{type:'fixed',name:'🇲🇦 Maroc'}},
+  {id:'R6',r:'r16',lb:'1/16e de finale',d:'30/06/2026',t:'19:00',slot1:{type:'fixed',name:"🇨🇮 Côte d'Ivoire"},slot2:{type:'fixed',name:'🇳🇴 Norvège'}},
+  {id:'R7',r:'r16',lb:'1/16e de finale',d:'01/07/2026',t:'03:00',slot1:{type:'fixed',name:'🇲🇽 Mexique'},slot2:{type:'tbd'}},
+  {id:'R8',r:'r16',lb:'1/16e de finale',d:'01/07/2026',t:'18:00',slot1:{type:'tbd'},slot2:{type:'tbd'}},
+  {id:'R9',r:'r16',lb:'1/16e de finale',d:'03/07/2026',t:'01:00',slot1:{type:'tbd'},slot2:{type:'tbd'}},
+  {id:'R10',r:'r16',lb:'1/16e de finale',d:'02/07/2026',t:'21:00',slot1:{type:'fixed',name:'🇪🇸 Espagne'},slot2:{type:'tbd'}},
+  {id:'R11',r:'r16',lb:'1/16e de finale',d:'02/07/2026',t:'02:00',slot1:{type:'fixed',name:'🇺🇸 États-Unis'},slot2:{type:'fixed',name:'🇧🇦 Bosnie-Herzégovine'}},
+  {id:'R12',r:'r16',lb:'1/16e de finale',d:'01/07/2026',t:'22:00',slot1:{type:'fixed',name:'🇧🇪 Belgique'},slot2:{type:'tbd'}},
+  {id:'R13',r:'r16',lb:'1/16e de finale',d:'03/07/2026',t:'05:00',slot1:{type:'fixed',name:'🇨🇭 Suisse'},slot2:{type:'tbd'}},
+  {id:'R14',r:'r16',lb:'1/16e de finale',d:'04/07/2026',t:'03:30',slot1:{type:'tbd'},slot2:{type:'tbd'}},
+  {id:'R15',r:'r16',lb:'1/16e de finale',d:'04/07/2026',t:'00:00',slot1:{type:'fixed',name:'🇦🇷 Argentine'},slot2:{type:'fixed',name:'🇨🇻 Cap-Vert'}},
+  {id:'R16',r:'r16',lb:'1/16e de finale',d:'03/07/2026',t:'20:00',slot1:{type:'fixed',name:'🇦🇺 Australie'},slot2:{type:'fixed',name:'🇪🇬 Égypte'}},
+  {id:'Q1',r:'qf',lb:'1/8e de finale',d:'04/07/2026',t:'23:00',slot1:{type:'tbd'},slot2:{type:'tbd'}},
+  {id:'Q2',r:'qf',lb:'1/8e de finale',d:'04/07/2026',t:'19:00',slot1:{type:'tbd'},slot2:{type:'tbd'}},
+  {id:'Q3',r:'qf',lb:'1/8e de finale',d:'06/07/2026',t:'21:00',slot1:{type:'tbd'},slot2:{type:'tbd'}},
+  {id:'Q4',r:'qf',lb:'1/8e de finale',d:'07/07/2026',t:'02:00',slot1:{type:'tbd'},slot2:{type:'tbd'}},
+  {id:'Q5',r:'qf',lb:'1/8e de finale',d:'05/07/2026',t:'22:00',slot1:{type:'tbd'},slot2:{type:'tbd'}},
+  {id:'Q6',r:'qf',lb:'1/8e de finale',d:'06/07/2026',t:'02:00',slot1:{type:'tbd'},slot2:{type:'tbd'}},
+  {id:'Q7',r:'qf',lb:'1/8e de finale',d:'07/07/2026',t:'22:00',slot1:{type:'tbd'},slot2:{type:'tbd'}},
+  {id:'Q8',r:'qf',lb:'1/8e de finale',d:'07/07/2026',t:'18:00',slot1:{type:'tbd'},slot2:{type:'tbd'}},
+  {id:'S1',r:'sf',lb:'Quart de finale',d:'09/07/2026',t:'22:00',slot1:{type:'tbd'},slot2:{type:'tbd'}},
+  {id:'S2',r:'sf',lb:'Quart de finale',d:'10/07/2026',t:'21:00',slot1:{type:'tbd'},slot2:{type:'tbd'}},
+  {id:'S3',r:'sf',lb:'Quart de finale',d:'11/07/2026',t:'23:00',slot1:{type:'tbd'},slot2:{type:'tbd'}},
+  {id:'S4',r:'sf',lb:'Quart de finale',d:'12/07/2026',t:'03:00',slot1:{type:'tbd'},slot2:{type:'tbd'}},
+  {id:'SF1',r:'semi',lb:'Demi-finale',d:'14/07/2026',t:'21:00',slot1:{type:'tbd'},slot2:{type:'tbd'}},
+  {id:'SF2',r:'semi',lb:'Demi-finale',d:'15/07/2026',t:'21:00',slot1:{type:'tbd'},slot2:{type:'tbd'}},
+  {id:'TP',r:'fin',lb:'🥉 Petite Finale',d:'18/07/2026',t:'23:00',slot1:{type:'tbd'},slot2:{type:'tbd'}},
+  {id:'FIN',r:'fin',lb:'🏆 FINALE',d:'19/07/2026',t:'21:00',slot1:{type:'tbd'},slot2:{type:'tbd'}}
+];
 const FLAGS={
   'Mexique':'🇲🇽','Afrique du Sud':'🇿🇦','Corée du Sud':'🇰🇷','Rép. Tchèque':'🇨🇿',
   'Canada':'🇨🇦','Bosnie-Herzégovine':'🇧🇦','Qatar':'🇶🇦','Suisse':'🇨🇭',
@@ -445,7 +467,7 @@ const db=firebase.database();
 async function fbSet(path,val){await db.ref(path).set(val);}
 
 // State
-let S={players:[],bets:{},results:{},chat:[],finalResults:{winner:'',scorer:''},adjustments:{},unlocks:{}};
+let S={players:[],bets:{},results:{},chat:[],finalResults:{winner:'',scorer:''},adjustments:{},unlocks:{},koTeams:{}};
 let curPlayer=null;
 let adminOn=false;
 
@@ -468,6 +490,7 @@ function startListeners(){
     }
   });
   db.ref('adjustments').on('value',snap=>{S.adjustments=snap.val()||{};renderRanking();renderAdmAdjustments();});
+  db.ref('koTeams').on('value',snap=>{S.koTeams=snap.val()||{};renderKO();renderAdmKO();});
   db.ref('unlocks').on('value',snap=>{S.unlocks=snap.val()||{};renderGroups();renderKO();renderAdmScores();});
   db.ref('chat').on('value',snap=>{
     const raw=snap.val()||{};
@@ -503,7 +526,9 @@ function getBest3rds(){
 }
 function resolveSlot(slot){
   if(!slot)return null;
-  if(slot.type==='fixed')return slot.name; // Équipe fixée manuellement
+  if(slot.type==='fixed')return slot.name;
+  if(slot.type==='tbd')return null; // À définir
+  // Legacy auto types (groupes seulement)
   if(slot.type==='first'){const s=getStandings(slot.grp);return s[0]?s[0].name:null;}
   if(slot.type==='second'){const s=getStandings(slot.grp);return s[1]?s[1].name:null;}
   if(slot.type==='best3'){return getBest3rds()[slot.idx]?.name||null;}
@@ -516,7 +541,13 @@ function resolveSlot(slot){
   }
   return null;
 }
-function getKOTeams(km){const h=resolveSlot(km.slot1),a=resolveSlot(km.slot2);return{h:h||'?',a:a||'?',rh:!!h,ra:!!a};}
+function getKOTeams(km){
+  // Priorité : équipes saisies par l'admin dans koTeams
+  const ko=S.koTeams&&S.koTeams[km.id]?S.koTeams[km.id]:{};
+  const h=ko.h||resolveSlot(km.slot1)||'À définir';
+  const a=ko.a||resolveSlot(km.slot2)||'À définir';
+  return{h,a};
+}
 
 // ===== LOGIN =====
 function renderPlayerBtns(){
@@ -1063,7 +1094,47 @@ function renderAdmAdjustments(){
     cont.appendChild(div);
   });
 }
-function renderAdm(){if(!adminOn)return;renderAdmPlayers();renderAdmAdjustments();renderAdmScores();}
+function renderAdmKO(){
+  if(!adminOn)return;
+  const cont=document.getElementById('adm-ko-teams');if(!cont)return;
+  cont.innerHTML='';
+  const rounds={'r16':'1/16e de finale','qf':'1/8e de finale','sf':'Quart de finale','semi':'Demi-finale','fin':'Finale / Petite finale'};
+  let lastRound='';
+  KMT.forEach(m=>{
+    if(m.r!==lastRound){
+      lastRound=m.r;
+      const sep=document.createElement('div');
+      sep.style.cssText='font-family:"Bebas Neue";font-size:1rem;color:var(--gold2);letter-spacing:1px;margin:.8rem 0 .4rem;padding:.3rem .5rem;background:rgba(255,165,0,.08);border-radius:6px';
+      sep.textContent=rounds[m.r]||m.r;
+      cont.appendChild(sep);
+    }
+    const ko=S.koTeams&&S.koTeams[m.id]?S.koTeams[m.id]:{};
+    // Valeurs actuelles : admin override ou slot fixé
+    const curH=ko.h||resolveSlot(m.slot1)||'';
+    const curA=ko.a||resolveSlot(m.slot2)||'';
+    const div=document.createElement('div');
+    div.style.cssText='display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;background:var(--dark2);border:1px solid var(--card2);border-radius:8px;padding:.6rem;margin-bottom:.4rem';
+    div.innerHTML=`
+      <span style="font-size:.75rem;color:var(--muted);min-width:90px">${m.lb} — ${m.d} ${m.t}</span>
+      <input type="text" class="inp-ko-h" placeholder="Équipe 1 (ex: 🇫🇷 France)" value="${curH}"
+        style="flex:1;min-width:130px;background:var(--card);border:1px solid var(--card2);color:var(--text);padding:.3rem .5rem;border-radius:6px;font-family:'Nunito';font-size:.82rem">
+      <span style="color:var(--muted);font-weight:700">vs</span>
+      <input type="text" class="inp-ko-a" placeholder="Équipe 2 (ex: 🇩🇪 Allemagne)" value="${curA}"
+        style="flex:1;min-width:130px;background:var(--card);border:1px solid var(--card2);color:var(--text);padding:.3rem .5rem;border-radius:6px;font-family:'Nunito';font-size:.82rem">
+      <button class="btn sm">💾 Sauver</button>
+      <span class="ko-save-msg" style="font-size:.72rem;color:var(--green)"></span>`;
+    div.querySelector('.btn').addEventListener('click',async function(){
+      const h=div.querySelector('.inp-ko-h').value.trim();
+      const a=div.querySelector('.inp-ko-a').value.trim();
+      await fbSet('koTeams/'+m.id,{h,a});
+      const msg=div.querySelector('.ko-save-msg');
+      msg.textContent='✅ Sauvegardé !';
+      setTimeout(()=>msg.textContent='',2000);
+    });
+    cont.appendChild(div);
+  });
+}
+function renderAdm(){if(!adminOn)return;renderAdmPlayers();renderAdmKO();renderAdmAdjustments();renderAdmScores();}
 
 // ===== TABS =====
 document.getElementById('main-nav').addEventListener('click',function(e){
