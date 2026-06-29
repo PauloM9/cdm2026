@@ -456,15 +456,25 @@ function calcPts(bet,res,isKO){
   }
 
   // Phase éliminatoire : barème spécial
-  // res.winner = 'h' ou 'a' (vainqueur final, y compris tirs au but)
-  const winner=res.winner||null; // 'h' ou 'a'
+  const winner=res.winner||null;
+  // Si le parieur n'a pas coché de qualifié, on le déduit de son score (si non nul)
+  let betWinner=bet.winner||null;
+  if(!betWinner){
+    if(bh>ba) betWinner='h';
+    else if(ba>bh) betWinner='a';
+    // Si nul, impossible de déduire → reste null
+  }
   const exactScore=(bh===rh&&ba===ra);
-  const betWinner=bet.winner||null; // 'h' ou 'a' parié par le joueur
-  const goodWinner=winner&&betWinner&&winner===betWinner;
+  const goodWinner=!!(winner&&betWinner&&winner===betWinner);
+  const badWinner=!!(winner&&betWinner&&winner!==betWinner);
+  const bR=bh>ba?'H':bh<ba?'A':'D';
+  const rR=rh>ra?'H':rh<ra?'A':'D';
+  const goodResult=(bR===rR);
 
-  if(exactScore&&goodWinner)return 3;   // Score exact + bon qualifié
-  if(exactScore&&!goodWinner&&winner)return 2; // Score exact + mauvais qualifié
-  if(goodWinner)return 1;               // Bon qualifié seulement
+  if(exactScore&&goodWinner)return 3;
+  if(exactScore&&badWinner)return 2;
+  if(exactScore&&!winner)return 2;
+  if(goodResult)return 1;
   return 0;
 }
 function simpleHash(s){let h=0;for(let i=0;i<s.length;i++){h=Math.imul(31,h)+s.charCodeAt(i)|0;}return h.toString(36);}
@@ -874,13 +884,30 @@ function buildKOCard(m){
       if(!hi||!ai||!curPlayer)return;
       const hv=hi.value!==''?hi.value:'0';
       const av=ai.value!==''?ai.value:'0';
-      const wv=wr?wr.value:'';
+      // Si radio coché → utiliser ce choix
+      // Sinon → déduire automatiquement du score (si score non nul)
+      let wv=wr?wr.value:'';
+      if(!wv){
+        const hn=+hv, an=+av;
+        if(hn>an) wv='h';       // Équipe 1 gagne → qualifiée auto
+        else if(an>hn) wv='a';  // Équipe 2 gagne → qualifiée auto
+        // Si nul (hn===an), pas de déduction automatique possible
+      }
       const nb={...(S.bets[curPlayer]||{}),[m.id]:{h:hv,a:av,winner:wv}};
       await fbSet('bets/'+curPlayer,nb);
       this.textContent='✅ Sauvé !';
       setTimeout(()=>{if(this.isConnected)this.textContent='💾 Sauvegarder';},1500);
       const ind=div.querySelector('.bet-ind');
       if(ind)ind.style.display='inline-flex';
+      // Mettre à jour visuellement le radio si déduit automatiquement
+      if(wv&&!wr){
+        const autoRadio=div.querySelector(`.bet-winner-radio[value="${wv}"]`);
+        if(autoRadio){
+          autoRadio.checked=true;
+          const lbl=autoRadio.closest('label');
+          if(lbl){lbl.style.border='1px solid var(--gold)';lbl.style.background='rgba(255,215,0,.15)';}
+        }
+      }
     });
   }
   return div;
